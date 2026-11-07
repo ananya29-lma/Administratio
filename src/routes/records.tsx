@@ -19,6 +19,30 @@ export const Route = createFileRoute("/records")({
   component: Records,
 });
 
+function formValue(value: unknown): string {
+  return value === undefined || value === null || value === "" ? "Not provided" : String(value);
+}
+
+function formCheck(value: unknown): string {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return formValue(value);
+}
+
+function ageFromDob(value: unknown): string {
+  if (typeof value !== "string" || !value) return "Not provided";
+  const dob = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return "Not provided";
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  if (
+    today.getMonth() < dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 0 ? String(age) : "Not provided";
+}
+
 function Records() {
   const { data, saveCommittedStudentRecord } = useStore();
   const [profile, setProfile] = useState<Row | null>(null);
@@ -142,19 +166,138 @@ function Records() {
               </DialogHeader>
               <div className="mt-4 space-y-6">
                 <section className="space-y-3">
-                  <h3 className="text-sm font-semibold">Student Details</h3>
+                  <h3 className="text-sm font-semibold">Personal Details</h3>
                   <KV
                     items={[
-                      ["Full Name", p.name],
+                      ["Application Date", fmtDate(p.appDate ?? p.regDate)],
                       ["Application Number", p.regNo],
                       ["Date of Birth", fmtDate(p.dob)],
+                      ["Age", ageFromDob(p.dob)],
+                      ["Student Full Name", formValue(p.name)],
                       ["Gender", p.gender],
-                      ["Contact Number", p.mobile],
-                      ["Address", p.address],
-                      ["Guardian", p.guardian],
-                      ["Guardian Contact", p.guardianMobile],
-                      ["Qualification", p.qualification],
-                      ["Course", courseCategoryName(p.course)],
+                      ["Mobile Number", formValue(p.mobile)],
+                      ["Email Address", formValue(p.email)],
+                      ["Permanent Address", formValue(p.address)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Guardian Details</h3>
+                  <KV
+                    items={[
+                      ["Guardian Name", formValue(p.guardian)],
+                      ["Relationship to Student", formValue(p.guardianRelationship)],
+                      ["Guardian Mobile Number", formValue(p.guardianMobile)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">
+                    Educational Qualification / Work Experience
+                  </h3>
+                  <KV
+                    items={[
+                      ["Qualification / Role", formValue(p.qualification)],
+                      ["Institute / Company", formValue(p.prevInstitution)],
+                      ["Year of Passing", formValue(p.qualificationYear)],
+                      ["Percentage / Grade", formValue(p.gradePercent)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Lead Source &amp; Reference</h3>
+                  <KV
+                    items={[
+                      ["Lead Source", formValue(p.source)],
+                      [
+                        "Reference / More Details",
+                        formValue(
+                          p.sourceDetails ??
+                            p.referenceDetails ??
+                            p.reference ??
+                            p.otherSourceDetails,
+                        ),
+                      ],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Course Preference</h3>
+                  <KV
+                    items={[
+                      ["Course Applied For", formValue(courseCategoryName(p.course))],
+                      ["Fee Plan Preferred", formValue(p.feePlanPreferred)],
+                      [
+                        "Instalments",
+                        formCheck(
+                          p.instalments ??
+                            p.installments ??
+                            (p.feePlanPreferred === "Installment"
+                              ? true
+                              : p.feePlanPreferred === "Full Payment"
+                                ? false
+                                : undefined),
+                        ),
+                      ],
+                      ["Preferred Number of Instalments", formValue(p.preferredInstallments)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Documents Enclosed</h3>
+                  <KV
+                    items={[
+                      ["ID Proof", formCheck(p.idEnclosed ?? p.docs?.id)],
+                      ["Address Proof", formCheck(p.addressProofEnclosed ?? p.docs?.address)],
+                      ["Latest Marksheet", formCheck(p.qualificationEnclosed ?? p.docs?.marksheet)],
+                      ["Passport-size Photographs", formCheck(p.photoEnclosed ?? p.docs?.photo)],
+                      ["Transfer Certificate", formCheck(p.transferEnclosed ?? p.docs?.transfer)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Declaration</h3>
+                  <p className="text-sm text-muted-foreground">
+                    I declare that the information given in this form is true and correct. I agree
+                    to follow the rules and regulations of Skill AI and understand that admission is
+                    subject to written approval.
+                  </p>
+                  <KV
+                    items={[
+                      ["Declaration Accepted", formCheck(p.declarationAccepted)],
+                      ["Declaration Date", fmtDate(p.declarationDate)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">
+                    Student / Guardian / Counsellor Signatures
+                  </h3>
+                  <KV
+                    items={[
+                      ["Student Signature", formValue(p.studentSignature)],
+                      ["Student Signature Date", fmtDate(p.studentSignatureDate)],
+                      ["Guardian Signature", formValue(p.guardianSignature)],
+                      ["Guardian Signature Date", fmtDate(p.guardianSignatureDate)],
+                      ["Course Counsellor Signature", formValue(p.counsellorSignature)],
+                      ["Counsellor Date", fmtDate(p.counsellorSignatureDate)],
+                    ]}
+                  />
+                </section>
+                <section className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Office Use Only</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Administrator and Accountant must independently verify their responsibilities
+                    before admission is fully verified.
+                  </p>
+                  <KV
+                    items={[
+                      ["Administrator Verification", formCheck(p.administratorVerified)],
+                      ["Administrator Name", formValue(p.administratorName)],
+                      ["Administrator Verification Date", fmtDate(p.administratorDate)],
+                      ["Accountant Verification", formCheck(p.accountantVerified)],
+                      ["Accountant Name", formValue(p.accountantName)],
+                      ["Accountant Verification Date", fmtDate(p.accountantDate)],
                     ]}
                   />
                 </section>
