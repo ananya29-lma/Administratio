@@ -24,6 +24,8 @@ import {
   scheduleConflict,
   summarizeExamEligibility,
   subjectSessionCount,
+  studentDemoPassword,
+  studentLmsUserIdPreview,
   suggestDays,
   taskTimeError,
   thresholdError,
@@ -42,6 +44,23 @@ import {
 import { readScheduledClasses, writeScheduledClasses } from "@/lib/scheduled-class-storage";
 
 describe("Administration calculations", () => {
+  it("builds a normalized LMS user ID preview and resolves known local collisions", () => {
+    expect(studentLmsUserIdPreview("Ananya Hegde", "ADM-2025-0401")).toBe("ananya.h2025");
+    expect(studentLmsUserIdPreview("Élodie O'Neil", "ADM-2025-0402")).toBe("elodie.o2025");
+    expect(studentLmsUserIdPreview("Ananya Hegde", "ADM-2025-0401", ["ananya.h2025"])).toBe(
+      "ananya.h2025-2",
+    );
+    expect(studentLmsUserIdPreview("", "ADM-2025-0401")).toBeUndefined();
+    expect(studentLmsUserIdPreview("Ananya Hegde", "ADM-UNKNOWN")).toBeUndefined();
+  });
+
+  it("creates name-based inactive example passwords for identified student records", () => {
+    expect(studentDemoPassword("Manoj Reddy", "ADM-2026-0401")).toBe("manoj@2026");
+    expect(studentDemoPassword("Ananya Hegde", "ADM-2026-0402")).toBe("ananya@2026");
+    expect(studentDemoPassword("", "ADM-2026-0401")).toBeUndefined();
+    expect(studentDemoPassword("Manoj Reddy", "")).toBeUndefined();
+  });
+
   it("calculates attendance percentage from present, late, and absent records only", () => {
     expect(
       attendancePercentage([{ status: "P" }, { status: "L" }, { status: "A" }, { status: "H" }]),

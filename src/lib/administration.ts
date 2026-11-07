@@ -2,6 +2,40 @@ import type { Row } from "./mock";
 
 export const BATCH_CATEGORIES = ["MWF", "TTS", "Full Week"];
 
+export function studentLmsUserIdPreview(
+  name: unknown,
+  admissionNumber: unknown,
+  existingUserIds: string[] = [],
+): string | undefined {
+  const nameParts =
+    String(name ?? "")
+      .normalize("NFKD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .match(/[a-z]+/g) ?? [];
+  const admissionYear = String(admissionNumber ?? "").match(/(?:19|20)\d{2}/)?.[0];
+  if (!nameParts.length || !admissionYear) return undefined;
+
+  const baseId = `${nameParts[0]}.${nameParts[1]?.[0] ?? "s"}${admissionYear}`;
+  const usedIds = new Set(existingUserIds.map((id) => id.toLowerCase()));
+  if (!usedIds.has(baseId)) return baseId;
+
+  let suffix = 2;
+  while (usedIds.has(`${baseId}-${suffix}`)) suffix += 1;
+  return `${baseId}-${suffix}`;
+}
+
+export function studentDemoPassword(name: unknown, studentIdentifier: unknown): string | undefined {
+  const firstName = String(name ?? "")
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .match(/[a-z]+/)?.[0];
+  const identifier = String(studentIdentifier ?? "").trim();
+  if (!firstName || !identifier) return undefined;
+  return `${firstName}@2026`;
+}
+
 export type AttendanceRecord = {
   id?: string;
   regNo: string;
