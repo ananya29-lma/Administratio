@@ -12,17 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AbsenceRouteImport } from './routes/absence'
 import { Route as AdmissionsRouteImport } from './routes/admissions'
+import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as BatchesRouteImport } from './routes/batches'
 import { Route as CertificatesRouteImport } from './routes/certificates'
+import { Route as ExamRequestsRouteImport } from './routes/exam-requests'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as LeaveRouteImport } from './routes/leave'
 import { Route as RecordsRouteImport } from './routes/records'
 import { Route as RegistrationRouteImport } from './routes/registration'
-import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as StartingSlipRouteImport } from './routes/starting-slip'
 import { Route as StudentRecordsRouteImport } from './routes/student-records'
-import { Route as TasksRouteImport } from './routes/tasks'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,6 +38,11 @@ const AdmissionsRoute = AdmissionsRouteImport.update({
   path: '/admissions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AttendanceRoute = AttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BatchesRoute = BatchesRouteImport.update({
   id: '/batches',
   path: '/batches',
@@ -47,6 +51,11 @@ const BatchesRoute = BatchesRouteImport.update({
 const CertificatesRoute = CertificatesRouteImport.update({
   id: '/certificates',
   path: '/certificates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamRequestsRoute = ExamRequestsRouteImport.update({
+  id: '/exam-requests',
+  path: '/exam-requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeesRoute = FeesRouteImport.update({
@@ -69,19 +78,9 @@ const RegistrationRoute = RegistrationRouteImport.update({
   path: '/registration',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StartingSlipRoute = StartingSlipRouteImport.update({
-  id: '/starting-slip',
-  path: '/starting-slip',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudentRecordsRoute = StudentRecordsRouteImport.update({
@@ -89,60 +88,52 @@ const StudentRecordsRoute = StudentRecordsRouteImport.update({
   path: '/student-records',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/absence': typeof AbsenceRoute
   '/admissions': typeof AdmissionsRoute
+  '/attendance': typeof AttendanceRoute
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
+  '/exam-requests': typeof ExamRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
   '/registration': typeof RegistrationRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/starting-slip': typeof StartingSlipRoute
   '/student-records': typeof StudentRecordsRoute
-  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/absence': typeof AbsenceRoute
   '/admissions': typeof AdmissionsRoute
+  '/attendance': typeof AttendanceRoute
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
+  '/exam-requests': typeof ExamRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
   '/registration': typeof RegistrationRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/starting-slip': typeof StartingSlipRoute
   '/student-records': typeof StudentRecordsRoute
-  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/absence': typeof AbsenceRoute
   '/admissions': typeof AdmissionsRoute
+  '/attendance': typeof AttendanceRoute
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
+  '/exam-requests': typeof ExamRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
   '/registration': typeof RegistrationRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/starting-slip': typeof StartingSlipRoute
   '/student-records': typeof StudentRecordsRoute
-  '/tasks': typeof TasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,66 +141,62 @@ export interface FileRouteTypes {
     | '/'
     | '/absence'
     | '/admissions'
+    | '/attendance'
     | '/batches'
     | '/certificates'
+    | '/exam-requests'
     | '/fees'
     | '/leave'
     | '/records'
     | '/registration'
-    | '/reports'
     | '/settings'
-    | '/starting-slip'
     | '/student-records'
-    | '/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/absence'
     | '/admissions'
+    | '/attendance'
     | '/batches'
     | '/certificates'
+    | '/exam-requests'
     | '/fees'
     | '/leave'
     | '/records'
     | '/registration'
-    | '/reports'
     | '/settings'
-    | '/starting-slip'
     | '/student-records'
-    | '/tasks'
   id:
     | '__root__'
     | '/'
     | '/absence'
     | '/admissions'
+    | '/attendance'
     | '/batches'
     | '/certificates'
+    | '/exam-requests'
     | '/fees'
     | '/leave'
     | '/records'
     | '/registration'
-    | '/reports'
     | '/settings'
-    | '/starting-slip'
     | '/student-records'
-    | '/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AbsenceRoute: typeof AbsenceRoute
   AdmissionsRoute: typeof AdmissionsRoute
+  AttendanceRoute: typeof AttendanceRoute
   BatchesRoute: typeof BatchesRoute
   CertificatesRoute: typeof CertificatesRoute
+  ExamRequestsRoute: typeof ExamRequestsRoute
   FeesRoute: typeof FeesRoute
   LeaveRoute: typeof LeaveRoute
   RecordsRoute: typeof RecordsRoute
   RegistrationRoute: typeof RegistrationRoute
-  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
-  StartingSlipRoute: typeof StartingSlipRoute
   StudentRecordsRoute: typeof StudentRecordsRoute
-  TasksRoute: typeof TasksRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/attendance': {
+      id: '/attendance'
+      path: '/attendance'
+      fullPath: '/attendance'
+      preLoaderRoute: typeof AttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/batches': {
       id: '/batches'
       path: '/batches'
@@ -247,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/certificates'
       fullPath: '/certificates'
       preLoaderRoute: typeof CertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exam-requests': {
+      id: '/exam-requests'
+      path: '/exam-requests'
+      fullPath: '/exam-requests'
+      preLoaderRoute: typeof ExamRequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fees': {
@@ -277,25 +278,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistrationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/starting-slip': {
-      id: '/starting-slip'
-      path: '/starting-slip'
-      fullPath: '/starting-slip'
-      preLoaderRoute: typeof StartingSlipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/student-records': {
@@ -305,13 +292,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentRecordsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -319,17 +299,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AbsenceRoute: AbsenceRoute,
   AdmissionsRoute: AdmissionsRoute,
+  AttendanceRoute: AttendanceRoute,
   BatchesRoute: BatchesRoute,
   CertificatesRoute: CertificatesRoute,
+  ExamRequestsRoute: ExamRequestsRoute,
   FeesRoute: FeesRoute,
   LeaveRoute: LeaveRoute,
   RecordsRoute: RecordsRoute,
   RegistrationRoute: RegistrationRoute,
-  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
-  StartingSlipRoute: StartingSlipRoute,
   StudentRecordsRoute: StudentRecordsRoute,
-  TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

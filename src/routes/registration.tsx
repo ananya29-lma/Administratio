@@ -1,11 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  Download,
-  Printer,
-  Trash2,
-} from "lucide-react";
+import { Download, Printer, Trash2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -312,7 +308,13 @@ function Registration() {
               ))}
               <KV items={[["Application Status", view.status ?? "Registered"]]} />
               <div className="flex justify-end gap-2">
-                <Button variant="destructive" onClick={() => { setDel(view); setView(null); }}>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setDel(view);
+                    setView(null);
+                  }}
+                >
                   <Trash2 className="mr-1.5 h-4 w-4" />
                   Delete
                 </Button>

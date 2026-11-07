@@ -4,6 +4,53 @@ export const COMMITTED_STUDENT_RECORDS_KEY = "administration-committed-student-r
 
 type KeyValueStorage = Pick<Storage, "getItem" | "setItem">;
 
+export function studentIdForRecord(record: Row, studentPrefix = "STU"): string {
+  const applicationNumber = String(record.applicationNumber ?? record.regNo ?? "").trim();
+  const existingStudentId = String(record.studentId ?? "").trim();
+  if (existingStudentId && existingStudentId !== applicationNumber) return existingStudentId;
+  if (!applicationNumber) return existingStudentId;
+  return applicationNumber.replace(/^APP(?=-)/, studentPrefix);
+}
+
+export function studentIdForRegistration(
+  regNo: unknown,
+  records: { students: Row[]; admissions: Row[]; committedStudents: Row[] },
+  studentPrefix = "STU",
+): string {
+  const applicationNumber = String(regNo ?? "").trim();
+  const student = records.students.find((record) => record.regNo === applicationNumber);
+  const admission = records.admissions.find((record) => record.regNo === applicationNumber);
+  const admissionNumbers = [
+    admission?.admissionNo,
+    admission?.appNo,
+    student?.admissionNo,
+    student?.appNo,
+  ].filter((number): number is string => typeof number === "string" && number !== "");
+  const committedRecord = records.committedStudents.find(
+    (record) =>
+      record.applicationNumber === applicationNumber ||
+      record.regNo === applicationNumber ||
+      admissionNumbers.includes(String(record.admissionNumber ?? record.admissionNo ?? "")),
+  );
+  return studentIdForRecord(
+    {
+      studentId: committedRecord?.studentId ?? student?.studentId ?? admission?.studentId,
+      applicationNumber: committedRecord?.applicationNumber ?? applicationNumber,
+    },
+    studentPrefix,
+  );
+}
+
+export function canCompleteInstituteVisit(
+  record: Pick<Row, "instituteVisitStatus" | "agreementStatus" | "handbookStatus">,
+): boolean {
+  return (
+    ["Visited", "Completed"].includes(String(record.instituteVisitStatus)) &&
+    record.agreementStatus === "Signed" &&
+    record.handbookStatus === "Issued"
+  );
+}
+
 export function readCommittedStudentRecords(storage: KeyValueStorage): Row[] {
   const saved = storage.getItem(COMMITTED_STUDENT_RECORDS_KEY);
   if (!saved) return [];
@@ -21,16 +68,15 @@ export function upsertCommittedStudentRecord(records: Row[], record: Row): Row[]
     throw new Error("An admission number or student ID is required to save a student record");
   }
 
-  const existingIndex = records.findIndex((item) =>
-    (admissionNumber && item.admissionNumber === admissionNumber) ||
-    (studentId && item.studentId === studentId) ||
-    (record.applicationNumber && item.applicationNumber === record.applicationNumber),
+  const existingIndex = records.findIndex(
+    (item) =>
+      (admissionNumber && item.admissionNumber === admissionNumber) ||
+      (studentId && item.studentId === studentId) ||
+      (record.applicationNumber && item.applicationNumber === record.applicationNumber),
   );
   if (existingIndex < 0) return [...records, record];
 
-  return records.map((item, index) =>
-    index === existingIndex ? { ...item, ...record } : item,
-  );
+  return records.map((item, index) => (index === existingIndex ? { ...item, ...record } : item));
 }
 
 export function persistCommittedStudentRecord(storage: KeyValueStorage, record: Row): Row[] {
