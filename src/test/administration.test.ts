@@ -23,7 +23,10 @@ import {
   relatedScheduledClassIds,
   scheduleConflict,
   summarizeExamEligibility,
+  summarizeLeaveRequests,
+  summarizeCertificateApplications,
   subjectSessionCount,
+  studentsForExamRequest,
   studentDemoPassword,
   studentLmsUserIdPreview,
   suggestDays,
@@ -37,6 +40,9 @@ import {
   COURSES,
   courseFee,
   INITIAL_ADMISSIONS,
+  INITIAL_CERTS,
+  INITIAL_EXAM_REQUESTS,
+  INITIAL_LEAVES,
   INITIAL_SCHEDULED_CLASSES,
   INITIAL_STUDENTS,
   INITIAL_TASKS,
@@ -556,6 +562,45 @@ describe("Administration calculations", () => {
       eligibleForExam: 0,
       feesPending: 0,
     });
+  });
+  it("summarizes leave cards from the existing leave request records", () => {
+    expect(summarizeLeaveRequests(INITIAL_LEAVES)).toEqual({
+      total: 18,
+      pending: 6,
+      approved: 9,
+      rejected: 3,
+    });
+  });
+  it("summarizes certificate cards from existing application statuses", () => {
+    expect(summarizeCertificateApplications(INITIAL_CERTS)).toEqual({
+      total: 14,
+      pending: 6,
+      readyForCollection: 2,
+      issued: 2,
+    });
+  });
+  it("gets exam request students from existing records in the exact course and batch", () => {
+    const students = [
+      { regNo: "REG-1", course: "Python", batch: "Morning" },
+      { regNo: "REG-2", course: "Python", batch: "Evening" },
+      { regNo: "REG-3", course: "Tally", batch: "Morning" },
+    ];
+
+    expect(studentsForExamRequest(students, { course: "Python", batch: "Morning" })).toEqual([
+      students[0],
+    ]);
+  });
+  it("includes the matching existing student roster beyond enrolled admissions", () => {
+    const request = INITIAL_EXAM_REQUESTS[0];
+    const rosterStudents = studentsForExamRequest(INITIAL_STUDENTS, request);
+    const enrolledAdmissions = INITIAL_ADMISSIONS.filter(
+      (admission) =>
+        admission.status === "Enrolled" &&
+        admission.course === request.course &&
+        admission.batch === request.batch,
+    );
+
+    expect(rosterStudents.length).toBeGreaterThan(enrolledAdmissions.length);
   });
   it("schedules practical and theory exams four days after class end", () => {
     expect(examScheduleAfterClassEnd("2026-11-07")).toEqual({

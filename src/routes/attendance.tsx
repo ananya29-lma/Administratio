@@ -367,19 +367,21 @@ function Attendance() {
                 : "Student profile, topic-wise academic progress, and attendance."
             }
             actions={
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (showAttendanceDashboard) {
-                    setShowAttendanceDashboard(false);
-                  } else {
-                    setSelectedRegNo("");
-                  }
-                }}
-              >
-                {showAttendanceDashboard ? "Back to Student Details" : "Back to Students"}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (showAttendanceDashboard) {
+                      setShowAttendanceDashboard(false);
+                    } else {
+                      setSelectedRegNo("");
+                    }
+                  }}
+                >
+                  {showAttendanceDashboard ? "Back to Student Details" : "Back to Students"}
+                </Button>
+              </>
             }
           />
           {!showAttendanceDashboard && (

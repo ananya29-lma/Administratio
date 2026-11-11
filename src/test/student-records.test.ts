@@ -2,13 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   COMMITTED_STUDENT_RECORDS_KEY,
   canCompleteInstituteVisit,
+  isRemovedExamDemoRecord,
   persistCommittedStudentRecord,
   readCommittedStudentRecords,
   studentIdForRecord,
   studentIdForRegistration,
   upsertCommittedStudentRecord,
+  withoutRemovedExamDemoRecords,
 } from "@/lib/student-records";
-import type { Row } from "@/lib/mock";
+import {
+  INITIAL_ADMISSIONS,
+  INITIAL_EXAM_REQUESTS,
+  INITIAL_PAYMENTS,
+  INITIAL_STUDENTS,
+  type Row,
+} from "@/lib/mock";
 
 function createStorage(initialValue: string | null = null) {
   let value = initialValue;
@@ -25,6 +33,36 @@ function createStorage(initialValue: string | null = null) {
 }
 
 describe("committed student records", () => {
+  it("identifies only the removed exam demo cohort", () => {
+    expect(isRemovedExamDemoRecord({ admissionNo: "ADM-2026-0510" })).toBe(true);
+    expect(isRemovedExamDemoRecord({ admissionNumber: "ADM-2026-0529" })).toBe(true);
+    expect(isRemovedExamDemoRecord({ appNo: "EXAM-APP-2026-0001" })).toBe(true);
+    expect(isRemovedExamDemoRecord({ regNo: "EXAM-REG-2026-0020" })).toBe(true);
+    expect(isRemovedExamDemoRecord({ admissionNo: "ADM-2026-0509" })).toBe(false);
+    expect(isRemovedExamDemoRecord({ admissionNo: "ADM-2026-0530" })).toBe(false);
+    expect(isRemovedExamDemoRecord({ appNo: "EXAM-APP-2026-0021" })).toBe(false);
+  });
+
+  it("does not seed the removed cohort or its linked application and payment records", () => {
+    expect(INITIAL_STUDENTS.some(isRemovedExamDemoRecord)).toBe(false);
+    expect(INITIAL_ADMISSIONS.some(isRemovedExamDemoRecord)).toBe(false);
+    expect(INITIAL_PAYMENTS.some(isRemovedExamDemoRecord)).toBe(false);
+    expect(
+      INITIAL_PAYMENTS.some((payment) => String(payment.receiptNo).startsWith("EXAM-COHORT-PAY-")),
+    ).toBe(true);
+    expect(INITIAL_EXAM_REQUESTS.map((request) => request.studentCount)).toEqual([4, 9, 8, 3]);
+  });
+
+  it("filters removed demo records while preserving unrelated saved records", () => {
+    const records = [
+      { admissionNo: "ADM-2026-0510" },
+      { admissionNo: "ADM-2026-0401" },
+      { applicationNumber: "EXAM-APP-2026-0020" },
+    ];
+
+    expect(withoutRemovedExamDemoRecords(records)).toEqual([{ admissionNo: "ADM-2026-0401" }]);
+  });
+
   it("allows visit completion only after a visit, signed agreement, and issued handbook", () => {
     expect(
       canCompleteInstituteVisit({

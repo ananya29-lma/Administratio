@@ -23,7 +23,7 @@ import {
 import { useCollection, useStore } from "@/lib/store";
 import { useStudentPicker } from "@/lib/use-students";
 import { addDays, TODAY, type Row } from "@/lib/mock";
-import { batchCategory } from "@/lib/administration";
+import { batchCategory, summarizeLeaveRequests } from "@/lib/administration";
 import { daysBetween, fmtDate } from "@/lib/format";
 import { studentIdForRegistration } from "@/lib/student-records";
 import { pageHead } from "@/lib/seo";
@@ -88,6 +88,7 @@ function Leave() {
     return true;
   };
 
+  const leaveSummary = summarizeLeaveRequests(lv.rows);
   const count = (s: string) => lv.rows.filter((r) => r.status === s).length;
   const rows = (tab === "All" ? lv.rows : lv.rows.filter((r) => r.status === tab)).map((row) => ({
     ...row,
@@ -164,15 +165,20 @@ function Leave() {
         description="Review student leave requests and record decisions."
       />
       <div className="kpi-compact-grid grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Total Requests" value={lv.rows.length} icon={CalendarCheck} />
-        <KpiCard label="Pending Requests" value={count("Pending")} icon={Clock} tone="orange" />
+        <KpiCard label="Total Requests" value={leaveSummary.total} icon={CalendarCheck} />
+        <KpiCard label="Pending Requests" value={leaveSummary.pending} icon={Clock} tone="orange" />
         <KpiCard
           label="Approved Requests"
-          value={count("Approved")}
+          value={leaveSummary.approved}
           icon={CheckCircle2}
           tone="green"
         />
-        <KpiCard label="Rejected Requests" value={count("Rejected")} icon={XCircle} tone="red" />
+        <KpiCard
+          label="Rejected Requests"
+          value={leaveSummary.rejected}
+          icon={XCircle}
+          tone="red"
+        />
       </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="leave-status-tabs">

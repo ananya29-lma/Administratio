@@ -325,12 +325,42 @@ export function examFeeEligibility(
   };
 }
 
+export function studentsForExamRequest(students: Row[], request: Pick<Row, "course" | "batch">) {
+  return students.filter(
+    (student) => student.course === request.course && student.batch === request.batch,
+  );
+}
+
 export function summarizeExamEligibility(students: { eligible: boolean }[]) {
   const eligibleForExam = students.filter((student) => student.eligible).length;
   return {
     totalStudents: students.length,
     eligibleForExam,
     feesPending: students.length - eligibleForExam,
+  };
+}
+
+export function summarizeLeaveRequests(requests: Row[]) {
+  return {
+    total: requests.length,
+    pending: requests.filter((request) => request.status === "Pending").length,
+    approved: requests.filter((request) => request.status === "Approved").length,
+    rejected: requests.filter((request) => request.status === "Rejected").length,
+  };
+}
+
+export function summarizeCertificateApplications(applications: Row[]) {
+  return {
+    total: applications.length,
+    pending: applications.filter((application) =>
+      ["Submitted", "Awaiting Documents", "Awaiting Fee Clearance", "Pending"].includes(
+        application.status,
+      ),
+    ).length,
+    readyForCollection: applications.filter(
+      (application) => application.status === "Ready for Collection",
+    ).length,
+    issued: applications.filter((application) => application.status === "Issued").length,
   };
 }
 

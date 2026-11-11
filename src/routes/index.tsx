@@ -45,6 +45,14 @@ const demoMultimediaStudentCount = 18;
 
 function Dashboard() {
   const { data } = useStore();
+  const todayLabel = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+    .format(new Date())
+    .toUpperCase();
   const courseDistribution = Object.entries(
     data.students.reduce<Record<string, number>>(
       (distribution, student) => {
@@ -70,7 +78,7 @@ function Dashboard() {
     <div className="es-dashboard">
       <section className="es-greeting">
         <div>
-          <p className="es-eyebrow">MONDAY, 3 NOVEMBER 2026</p>
+          <p className="es-eyebrow">{todayLabel}</p>
           <h1>
             Good Morning, Harshika! <span aria-hidden="true">👋</span>
           </h1>

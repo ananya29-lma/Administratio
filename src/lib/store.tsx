@@ -10,7 +10,12 @@ import {
 } from "react";
 import * as M from "./mock";
 import type { Row } from "./mock";
-import { persistCommittedStudentRecord, readCommittedStudentRecords } from "./student-records";
+import {
+  COMMITTED_STUDENT_RECORDS_KEY,
+  persistCommittedStudentRecord,
+  readCommittedStudentRecords,
+  withoutRemovedExamDemoRecords,
+} from "./student-records";
 import { readScheduledClasses, writeScheduledClasses } from "./scheduled-class-storage";
 import { examApprovalError, examFeeEligibility } from "./administration";
 import { DEFAULT_SUBJECT_CURRICULUM, type CurriculumSubject } from "./administration";
@@ -264,15 +269,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const records = readCommittedStudentRecords(window.localStorage);
-      if (records.length) {
-        setData((current) => ({ ...current, committedStudents: records }));
+      const currentRecords = withoutRemovedExamDemoRecords(records);
+      if (currentRecords.length !== records.length) {
+        window.localStorage.setItem(COMMITTED_STUDENT_RECORDS_KEY, JSON.stringify(currentRecords));
+      }
+      if (currentRecords.length || records.length) {
+        setData((current) => ({ ...current, committedStudents: currentRecords }));
       }
     } catch (error) {
       console.error("Failed to load saved student records", error);
     }
   }, []);
   useEffect(() => {
-    const scheduledClasses = readScheduledClasses(window.localStorage, scheduledClassesRef.current);
+    const savedScheduledClasses = readScheduledClasses(
+      window.localStorage,
+      scheduledClassesRef.current,
+    );
+    const scheduledClasses = withoutRemovedExamDemoRecords(savedScheduledClasses);
     scheduledClassesRef.current = scheduledClasses;
     scheduledClassesLoadedRef.current = true;
     setData((current) => ({ ...current, scheduledClasses }));
@@ -282,12 +295,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let attendance = initial.attendance;
     let academicTopics = initial.academicTopics;
     try {
-      attendance = readStoredRows(ATTENDANCE_STORAGE_KEY);
+      const savedAttendance = readStoredRows(ATTENDANCE_STORAGE_KEY);
+      attendance = withoutRemovedExamDemoRecords(savedAttendance);
+      if (attendance.length !== savedAttendance.length) {
+        window.localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attendance));
+      }
     } catch (error) {
       console.error("Failed to load attendance records", error);
     }
     try {
-      academicTopics = readStoredRows(ACADEMIC_TOPICS_STORAGE_KEY);
+      const savedAcademicTopics = readStoredRows(ACADEMIC_TOPICS_STORAGE_KEY);
+      academicTopics = withoutRemovedExamDemoRecords(savedAcademicTopics);
+      if (academicTopics.length !== savedAcademicTopics.length) {
+        window.localStorage.setItem(ACADEMIC_TOPICS_STORAGE_KEY, JSON.stringify(academicTopics));
+      }
     } catch (error) {
       console.error("Failed to load academic topic records", error);
     }

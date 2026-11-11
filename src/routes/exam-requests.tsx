@@ -27,6 +27,7 @@ import {
   examScheduleAfterClassEnd,
   examFeeEligibility,
   summarizeExamEligibility,
+  studentsForExamRequest,
 } from "@/lib/administration";
 import { fmtDate, fmtINR } from "@/lib/format";
 import { studentIdForRegistration } from "@/lib/student-records";
@@ -50,68 +51,71 @@ function Page() {
   const [studentPage, setStudentPage] = useState(0);
 
   const eligibleStudents = (request: Row): Row[] =>
-    data.admissions
-      .filter(
-        (admission) =>
-          admission.status === "Enrolled" &&
-          admission.course === request.course &&
-          admission.batch === request.batch,
-      )
-      .map((admission): Row => {
-        const course = COURSES.find((item) => item.name === admission.course);
-        const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
-        const monthlyDue = Number(
-          admission.monthlyFee ?? (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
-        );
-        const feeMonth = request.month || String(request.examDate).slice(0, 7);
-        const monthPayments = data.payments.filter(
-          (payment) =>
-            payment.appNo === admission.appNo &&
-            payment.regNo === admission.regNo &&
-            String(payment.date ?? "").slice(0, 7) === feeMonth,
-        );
-        const eligibility = examFeeEligibility(
-          admission.appNo,
-          admission.regNo,
-          feeMonth,
-          monthlyDue,
-          data.payments,
-        );
-        const approval = approvals.rows.find(
-          (record) => record.requestId === request.id && record.regNo === admission.regNo,
-        );
-        const feeVerification = feeVerificationRequests.rows
-          .filter(
-            (record) =>
-              record.examRequestId === request.id &&
-              record.regNo === admission.regNo &&
-              record.feeMonth === feeMonth,
-          )
-          .sort((a, b) => String(b.requestedAt).localeCompare(String(a.requestedAt)))[0];
-        const recordedAmountPaid = feeVerification?.status === "Unpaid" ? 0 : eligibility.paid;
-        const studentRecord = data.students.find((student) => student.regNo === admission.regNo);
-        const attendancePercent = attendancePercentage(
-          data.attendance.filter((record) => record.regNo === admission.regNo),
-        );
-        const latestPayment = monthPayments
-          .filter((payment) => payment.verified === true)
-          .sort((first, second) => String(second.date).localeCompare(String(first.date)))[0];
-        return {
-          ...admission,
-          studentId: studentIdForRegistration(admission.regNo, data, settings.prefixes.student),
-          email: studentRecord?.email ?? admission.email,
-          mobile: studentRecord?.mobile ?? admission.mobile,
-          photoUrl: studentRecord?.photoUrl,
-          monthlyDue,
-          recordedAmountPaid,
-          eligibility,
-          approval,
-          feeVerification,
-          latestPaymentDate: latestPayment?.date,
-          monthPayments,
-          attendancePercent,
-        };
-      });
+    studentsForExamRequest(data.students, request).map((student): Row => {
+      const admission = data.admissions.find(
+        (record) =>
+          record.regNo === student.regNo &&
+          record.status === "Enrolled" &&
+          record.course === request.course &&
+          record.batch === request.batch,
+      );
+      const course = COURSES.find((item) => item.name === student.course);
+      const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
+      const monthlyDue = Number(
+        admission?.monthlyFee ??
+          student.monthlyFee ??
+          (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+      );
+      const feeMonth = request.month || String(request.examDate).slice(0, 7);
+      const appNo = String(
+        admission?.appNo ?? student.appNo ?? student.applicationNumber ?? student.regNo ?? "",
+      );
+      const regNo = String(student.regNo ?? "");
+      const monthPayments = data.payments.filter(
+        (payment) =>
+          payment.appNo === appNo &&
+          payment.regNo === regNo &&
+          String(payment.date ?? "").slice(0, 7) === feeMonth,
+      );
+      const eligibility = examFeeEligibility(appNo, regNo, feeMonth, monthlyDue, data.payments);
+      const approval = approvals.rows.find(
+        (record) => record.requestId === request.id && record.regNo === regNo,
+      );
+      const feeVerification = feeVerificationRequests.rows
+        .filter(
+          (record) =>
+            record.examRequestId === request.id &&
+            record.regNo === regNo &&
+            record.feeMonth === feeMonth,
+        )
+        .sort((a, b) => String(b.requestedAt).localeCompare(String(a.requestedAt)))[0];
+      const recordedAmountPaid = feeVerification?.status === "Unpaid" ? 0 : eligibility.paid;
+      const attendancePercent = attendancePercentage(
+        data.attendance.filter((record) => record.regNo === regNo),
+      );
+      const latestPayment = monthPayments
+        .filter((payment) => payment.verified === true)
+        .sort((first, second) => String(second.date).localeCompare(String(first.date)))[0];
+      return {
+        ...student,
+        ...admission,
+        regNo,
+        appNo,
+        admissionNo: admission?.admissionNo ?? student.admissionNo ?? "Not enrolled",
+        studentId: studentIdForRegistration(regNo, data, settings.prefixes.student),
+        email: student.email ?? admission?.email,
+        mobile: student.mobile ?? admission?.mobile,
+        photoUrl: student.photoUrl,
+        monthlyDue,
+        recordedAmountPaid,
+        eligibility,
+        approval,
+        feeVerification,
+        latestPaymentDate: latestPayment?.date,
+        monthPayments,
+        attendancePercent,
+      };
+    });
 
   const rows = requests.rows.map((request) => {
     const batch = data.batches.find(
@@ -186,7 +190,6 @@ function Page() {
     requests.update(request.id, scheduledValues);
     setView({ ...request, ...scheduledValues });
   };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -277,7 +280,6 @@ function Page() {
                       <tr className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                         <th className="w-[22%] px-3 py-3">Student Name</th>
                         <th className="w-[20%] px-3 py-3">Student ID</th>
-                        <th className="w-[13%] px-3 py-3">Admission No.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -311,16 +313,13 @@ function Page() {
                             <td className="break-words px-3 py-3 font-mono text-xs text-muted-foreground">
                               {student.studentId || "—"}
                             </td>
-                            <td className="break-words px-3 py-3 text-muted-foreground">
-                              {student.admissionNo}
-                            </td>
                           </tr>
                         );
                       })}
                       {!visibleStudents.length && (
                         <tr>
                           <td className="px-3 py-10 text-center text-muted-foreground" colSpan={3}>
-                            No enrolled students match this course and batch.
+                            No student records match this course and batch.
                           </td>
                         </tr>
                       )}

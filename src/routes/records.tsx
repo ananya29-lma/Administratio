@@ -270,21 +270,6 @@ function Records() {
                   />
                 </section>
                 <section className="space-y-3 border-t pt-4">
-                  <h3 className="text-sm font-semibold">
-                    Student / Guardian / Counsellor Signatures
-                  </h3>
-                  <KV
-                    items={[
-                      ["Student Signature", formValue(p.studentSignature)],
-                      ["Student Signature Date", fmtDate(p.studentSignatureDate)],
-                      ["Guardian Signature", formValue(p.guardianSignature)],
-                      ["Guardian Signature Date", fmtDate(p.guardianSignatureDate)],
-                      ["Course Counsellor Signature", formValue(p.counsellorSignature)],
-                      ["Counsellor Date", fmtDate(p.counsellorSignatureDate)],
-                    ]}
-                  />
-                </section>
-                <section className="space-y-3 border-t pt-4">
                   <h3 className="text-sm font-semibold">Office Use Only</h3>
                   <p className="text-xs text-muted-foreground">
                     Administrator and Accountant must independently verify their responsibilities

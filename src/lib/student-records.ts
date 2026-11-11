@@ -4,6 +4,27 @@ export const COMMITTED_STUDENT_RECORDS_KEY = "administration-committed-student-r
 
 type KeyValueStorage = Pick<Storage, "getItem" | "setItem">;
 
+export function isRemovedExamDemoRecord(record: Row): boolean {
+  const removedAdmissionNumber = /^ADM-2026-05(?:1\d|2\d)$/;
+  const removedExamNumber = /^EXAM-(?:APP|REG)-2026-(?:000[1-9]|001\d|0020)$/;
+
+  return [
+    record.admissionNo,
+    record.admissionNumber,
+    record.appNo,
+    record.applicationNumber,
+    record.regNo,
+    record.studentId,
+  ].some((value) => {
+    if (typeof value !== "string") return false;
+    return removedAdmissionNumber.test(value) || removedExamNumber.test(value);
+  });
+}
+
+export function withoutRemovedExamDemoRecords(records: Row[]): Row[] {
+  return records.filter((record) => !isRemovedExamDemoRecord(record));
+}
+
 export function studentIdForRecord(record: Row, studentPrefix = "STU"): string {
   const applicationNumber = String(record.applicationNumber ?? record.regNo ?? "").trim();
   const existingStudentId = String(record.studentId ?? "").trim();

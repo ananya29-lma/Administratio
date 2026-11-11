@@ -494,101 +494,6 @@ export const INITIAL_EXAM_REQUESTS: Row[] = INITIAL_BATCHES.filter(
     rejectionReason: "",
   }));
 
-const examDemoNames = [
-  "Vishal Subramanian",
-  "Priya Sharma",
-  "Arjun Kumar",
-  "Sneha Reddy",
-  "Rahul Verma",
-  "Divya Nair",
-  "Karthik Raj",
-  "Ananya Iyer",
-  "Mohammed Faiz",
-  "Pooja Menon",
-  "Meera Krishnan",
-  "Aarav Menon",
-  "Nisha Patel",
-  "Siddharth Rao",
-  "Kavya Iyer",
-  "Rohan Gupta",
-  "Ishita Nair",
-  "Manoj Reddy",
-  "Diya Sharma",
-  "Harish Kumar",
-];
-const examDemoMonthlyFees = [
-  7000, 6000, 5500, 7000, 6500, 6000, 7500, 5500, 6500, 7500, 6200, 5800, 6800, 7200, 5900, 6400,
-  7100, 5600, 6600, 7400,
-];
-export const INITIAL_EXAM_DEMO_ADMISSIONS: Row[] = [];
-export const INITIAL_EXAM_DEMO_STUDENTS: Row[] = [];
-export const INITIAL_EXAM_DEMO_PAYMENTS: Row[] = [];
-
-INITIAL_EXAM_REQUESTS.forEach((request, requestIndex) => {
-  const start = requestIndex * 5;
-  examDemoNames.slice(start, start + 5).forEach((name, groupIndex) => {
-    const index = start + groupIndex;
-    const monthlyFee = examDemoMonthlyFees[index];
-    const regNo = `EXAM-REG-2026-${pad(index + 1, 4)}`;
-    const appNo = `EXAM-APP-2026-${pad(index + 1, 4)}`;
-    const student = {
-      regNo,
-      name,
-      photoUrl: sampleStudentPortrait(100 + index),
-      dob: `${1998 + (index % 8)}-${pad((index % 12) + 1, 2)}-${pad((index % 27) + 1, 2)}`,
-      gender: index % 2 === 0 ? "Male" : "Female",
-      mobile: `9${String(810000000 + index).padStart(9, "0")}`,
-      email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.edu.in`,
-      course: request.course,
-      batch: request.batch,
-      regDate: addDays(TODAY, -90 - index),
-      source: "Sample Exam Dataset",
-      remarks: "Development sample student",
-      feePlanPreferred: "Installment",
-    };
-    const admission = {
-      appNo,
-      admissionNo: `ADM-2026-${pad(510 + index)}`,
-      regNo,
-      name,
-      mobile: student.mobile,
-      course: request.course,
-      batch: request.batch,
-      appDate: addDays(TODAY, -100 - index),
-      admissionDate: addDays(TODAY, -90 - index),
-      startDate: addDays(TODAY, -85 - index),
-      duration: COURSES.find((course) => course.name === request.course)?.duration,
-      fee: courseFee(request.course),
-      discount: 0,
-      paid: 0,
-      monthlyFee,
-      status: "Enrolled",
-      dueDate: request.examDate,
-    };
-    INITIAL_EXAM_DEMO_STUDENTS.push(student);
-    INITIAL_EXAM_DEMO_ADMISSIONS.push(admission);
-
-    // The first request is the all-paid cohort; other requests contain both paid and pending students.
-    const feePaid = requestIndex === 0 || groupIndex < 3;
-    if (feePaid) {
-      INITIAL_EXAM_DEMO_PAYMENTS.push({
-        receiptNo: `EXAM-PAY-${pad(index + 1, 4)}`,
-        appNo,
-        admissionNo: admission.admissionNo,
-        regNo,
-        name,
-        date: `${request.month}-05`,
-        amount: monthlyFee,
-        method: "UPI",
-        reference: `EXAM-SAMPLE-${pad(index + 1, 4)}`,
-        component: "Tuition Fee",
-        installment: 1,
-        verified: true,
-        remarks: "Verified sample exam-month tuition payment",
-      });
-    }
-  });
-});
 // Verify existing sample admissions in the first cohort too, so the request can be approved as a fully paid group.
 const allPaidRequest = INITIAL_EXAM_REQUESTS[0];
 if (allPaidRequest) {
@@ -603,7 +508,7 @@ if (allPaidRequest) {
     const amount = Number(
       admission.monthlyFee ?? (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
     );
-    INITIAL_EXAM_DEMO_PAYMENTS.push({
+    INITIAL_PAYMENTS.push({
       receiptNo: `EXAM-COHORT-PAY-${pad(index + 1, 4)}`,
       appNo: admission.appNo,
       admissionNo: admission.admissionNo,
@@ -620,16 +525,8 @@ if (allPaidRequest) {
     });
   });
 }
-INITIAL_STUDENTS.push(...INITIAL_EXAM_DEMO_STUDENTS);
-INITIAL_ADMISSIONS.push(...INITIAL_EXAM_DEMO_ADMISSIONS);
-INITIAL_PAYMENTS.push(...INITIAL_EXAM_DEMO_PAYMENTS);
-INITIAL_EXAM_REQUESTS.forEach((request) => {
-  request.studentCount = INITIAL_ADMISSIONS.filter(
-    (admission) =>
-      admission.status === "Enrolled" &&
-      admission.course === request.course &&
-      admission.batch === request.batch,
-  ).length;
+INITIAL_EXAM_REQUESTS.forEach((request, index) => {
+  request.studentCount = [4, 9, 8, 3][index] ?? request.studentCount;
 });
 export const INITIAL_EXAM_APPROVALS: Row[] = [];
 export const INITIAL_FEE_VERIFICATION_REQUESTS: Row[] = [];
