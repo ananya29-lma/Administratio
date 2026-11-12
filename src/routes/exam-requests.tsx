@@ -273,7 +273,7 @@ function Page() {
           </DialogHeader>
           {view && (
             <div className="space-y-4">
-              <Panel title={`Eligibile · ${studentSummary.totalStudents} Students`}>
+              <Panel title={`Eligible · ${studentSummary.totalStudents} Students`}>
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed text-left text-sm">
                     <thead>
@@ -318,7 +318,7 @@ function Page() {
                       })}
                       {!visibleStudents.length && (
                         <tr>
-                          <td className="px-3 py-10 text-center text-muted-foreground" colSpan={3}>
+                          <td className="px-3 py-10 text-center text-muted-foreground" colSpan={2}>
                             No student records match this course and batch.
                           </td>
                         </tr>

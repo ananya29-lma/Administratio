@@ -115,17 +115,25 @@ function Page() {
     ? view.gradeAssigned || gradeOptions[applicationIndex % gradeOptions.length]
     : undefined;
   const formField = (label: string, value: ReactNode, className = "", labelClass = "") => (
-    <div
-      className={`grid min-w-0 grid-cols-[38%_62%] border-b border-r border-[#777] ${className}`}
-    >
+    <div className={`grid min-w-0 grid-cols-[38%_62%] ${className}`}>
       <dt className={`bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-medium leading-snug ${labelClass}`}>
         {label}
       </dt>
       <dd className="min-w-0 break-words px-2 py-1.5 text-xs leading-snug">{value}</dd>
     </div>
   );
+  const formLabel = (label: string, className = "") => (
+    <dt
+      className={`min-w-0 bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-medium leading-snug ${className}`}
+    >
+      {label}
+    </dt>
+  );
+  const formValue = (value: ReactNode, className = "") => (
+    <dd className={`min-w-0 break-words px-2 py-1.5 text-xs leading-snug ${className}`}>{value}</dd>
+  );
   const formSectionHeading = (title: string) => (
-    <h3 className="border-b border-[#777] bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-semibold uppercase leading-snug text-[#E86F2A]">
+    <h3 className="bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-semibold uppercase leading-snug text-[#E86F2A]">
       {title}
     </h3>
   );
@@ -220,71 +228,113 @@ function Page() {
                     </p>
                   </div>
 
-                  <dl className="grid grid-cols-1 border-l border-t border-[#777] sm:grid-cols-2">
-                    {formField("Name", available(selectedStudent?.name ?? view.name))}
-                    {formField("Campus Name", available(settings.institution))}
-                    {formField(
-                      "Admission No",
+                  <dl className="grid grid-cols-[38%_62%] sm:grid-cols-[18%_32%_18%_32%] sm:auto-rows-[minmax(2rem,auto)]">
+                    {formLabel("Name", "sm:col-start-1 sm:row-start-1")}
+                    {formValue(
+                      available(selectedStudent?.name ?? view.name),
+                      "sm:col-start-2 sm:row-start-1",
+                    )}
+                    {formLabel("Campus Name", "sm:col-start-3 sm:row-start-1")}
+                    {formValue("Skill AI", "sm:col-start-4 sm:row-start-1")}
+                    {formLabel("Admission No", "sm:col-start-1 sm:row-start-2")}
+                    {formValue(
                       available(selectedAdmission?.admissionNo ?? view.admissionNo),
+                      "sm:col-start-2 sm:row-start-2",
                     )}
-                    {formField("Course Detail", available(view.course), "", "text-[#E86F2A]")}
-                    {formField("Address", available(selectedStudent?.address))}
-                    {formField("Name of Course", available(view.course))}
-                    {formField("Contact No", available(selectedStudent?.mobile ?? view.mobile))}
-                    {formField(
-                      "Starting Date",
+                    <dt className="bg-[#F3F3F3] px-2 py-1.5 text-center text-sm font-semibold text-[#E86F2A] sm:col-span-2 sm:col-start-3 sm:row-start-2">
+                      Course Detail
+                    </dt>
+                    {formLabel("Address", "sm:col-start-1 sm:row-span-2 sm:row-start-3")}
+                    {formValue(
+                      available(selectedStudent?.address),
+                      "sm:col-start-2 sm:row-span-2 sm:row-start-3",
+                    )}
+                    {formLabel("Name of Course", "sm:col-start-3 sm:row-start-3")}
+                    {formValue(available(view.course), "sm:col-start-4 sm:row-start-3")}
+                    {formLabel("Starting Date", "sm:col-start-3 sm:row-start-4")}
+                    {formValue(
                       availableDate(selectedAdmission?.startDate ?? view.startDate),
+                      "sm:col-start-4 sm:row-start-4",
                     )}
-                    {formField(
-                      "Completion Date",
+                    {formLabel("Contact No", "sm:col-start-1 sm:row-start-5")}
+                    {formValue(
+                      available(selectedStudent?.mobile ?? view.mobile),
+                      "sm:col-start-2 sm:row-start-5",
+                    )}
+                    {formLabel("Completion Date", "sm:col-start-3 sm:row-start-5")}
+                    {formValue(
                       availableDate(selectedCompletion?.completionDate ?? view.completionDate),
+                      "sm:col-start-4 sm:row-start-5",
                     )}
                   </dl>
 
-                  <section className="grid grid-cols-1 border border-[#777] sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                    <h3 className="px-2 py-2 text-xs font-medium">
+                  <section className="grid grid-cols-1 items-center sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <h3 className="px-2 py-1.5 text-xs font-medium">
                       Do you want placement through the Skill AI Placement Division?
                     </h3>
-                    {["Yes", "No"].map((choice) => {
-                      const selected =
-                        String(view.placementPreference ?? "").toLowerCase() ===
-                        choice.toLowerCase();
-                      return (
-                        <p key={choice} className="px-3 py-2 text-xs">
-                          {selected ? "☒" : "☐"} {choice}
-                        </p>
-                      );
-                    })}
+                    <p className="px-3 py-1.5 text-center text-xs">
+                      {available(view.placementPreference)}
+                    </p>
                   </section>
 
-                  <section className="grid grid-cols-1 border-l border-t border-[#777] sm:grid-cols-[1.4fr_1fr]">
-                    <div className="border-b border-r border-[#777]">
-                      {formSectionHeading("Academic Evaluation by Campus Section In-Charge")}
-                      <dl className="grid grid-cols-1 border-l border-[#777]">
-                        {formField(
-                          "Subject and % of marks obtained",
-                          `${available(subject)} · ${available(percentageOfMarks)}`,
-                          "grid-cols-[38%_62%]",
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[7fr_3fr]">
+                    <div className="space-y-3">
+                      <section className="flex min-h-[320px] flex-col">
+                        {formSectionHeading("Academic Evaluation by Campus Section In-Charge")}
+                        <div className="px-2 py-2 text-center text-xs font-semibold">
+                          Subject and % of marks obtained
+                        </div>
+                        <div className="grid flex-1 grid-cols-1 sm:grid-cols-[2fr_0.75fr_2fr_0.75fr]">
+                          <div />
+                          <div />
+                          <div className="px-2 py-2 text-center text-xs">
+                            {available(subject)} · {available(percentageOfMarks)}
+                          </div>
+                          <div />
+                        </div>
+                      </section>
+
+                      <section>
+                        {formSectionHeading(
+                          "Academic Verification by Academic Head from Head Office",
                         )}
-                      </dl>
-                      <div className="flex min-h-16 flex-col justify-end px-2 py-2 text-[11px]">
-                        <span className="mb-1 border-b border-dotted border-[#555] pb-1 text-xs">
-                          {available(view.sectionInChargeSignatureDate)}
-                        </span>
-                        Sign &amp; Date of Section In-Charge
-                      </div>
+                        <p className="bg-[#F3F3F3] px-2 py-1.5 text-center text-xs font-semibold text-[#E86F2A]">
+                          Grade Assigned
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3">
+                          <div className="col-span-1 grid grid-cols-1 sm:col-span-2 sm:grid-cols-2">
+                            <span className="px-2 py-1.5 text-xs font-semibold">
+                              • {available(gradeAssigned)}
+                            </span>
+                          </div>
+                        </div>
+                      </section>
                     </div>
-                    <div className="border-b border-r border-[#777]">
+
+                    <section className="flex h-full flex-col">
                       {formSectionHeading("Payment Details")}
-                      <dl className="grid grid-cols-1 border-l border-[#777]">
-                        {formField("Total Fee", availableMoney(selectedAdmission?.fee ?? view.fee))}
-                        {formField("Concession Value", availableMoney(selectedAdmission?.discount))}
-                        {formField("Total Paid", availableMoney(selectedAdmission?.paid))}
+                      <dl className="grid grid-cols-1">
+                        {formField(
+                          "Total Fee",
+                          availableMoney(selectedAdmission?.fee ?? view.fee),
+                          "grid-cols-[46%_54%]",
+                        )}
+                        {formField(
+                          "Concession Value",
+                          availableMoney(selectedAdmission?.discount),
+                          "grid-cols-[46%_54%]",
+                        )}
+                        {formField(
+                          "Total Paid",
+                          availableMoney(selectedAdmission?.paid),
+                          "grid-cols-[46%_54%]",
+                        )}
                         {formField(
                           "Last Paid Date",
                           availableDate(
                             selectedPayments.find((payment) => payment.verified === true)?.date,
                           ),
+                          "grid-cols-[46%_54%]",
                         )}
                       </dl>
                       <div className="space-y-2 px-2 py-2 text-[11px] leading-snug">
@@ -293,66 +343,29 @@ function Page() {
                           above, have been duly received, verified, and recorded in the
                           institution’s accounts by the undersigned Accounts Officer.
                         </p>
-                        <p className="border-b border-dotted border-[#555] pb-1 text-xs">
-                          {available(view.accountsOfficerSignatureDate)}
-                        </p>
-                        <p>Sign &amp; Date of Accounts Officer</p>
                       </div>
-                    </div>
-                  </section>
+                    </section>
+                  </div>
 
-                  <section className="border border-[#777]">
-                    {formSectionHeading("Academic Verification by Academic Head from Head Office")}
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr]">
-                      <div className="grid grid-cols-[38%_62%] border-r border-[#777]">
-                        <p className="bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-medium text-[#E86F2A]">
-                          Grade Assigned
-                        </p>
-                        <p className="px-2 py-1.5 text-xs">{available(gradeAssigned)}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 px-2 py-1.5 text-[11px] sm:grid-cols-4">
-                        {["EXCELLENT", "GOOD", "VERY GOOD", "AVERAGE"].map((grade) => (
-                          <span key={grade}>
-                            {gradeAssigned === grade ? "☒" : "☐"} {grade}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="border-t border-[#777] px-2 py-2 text-[11px]">
-                      <span className="mr-2 inline-block min-w-40 border-b border-dotted border-[#555] pb-1 text-xs">
-                        {available(view.academicHeadSignatureDate)}
-                      </span>
-                      Sign &amp; Date of Academic Head
-                    </p>
-                  </section>
-
-                  <section className="border border-[#777]">
+                  <section>
                     <p className="px-2 py-2 text-xs leading-snug">
                       I hereby declare that the above details are true.
                     </p>
-                    <p className="mx-2 mt-3 min-h-6 border-b border-dotted border-[#555] pb-1 text-xs">
-                      {available(view.applicantSignature)}
-                    </p>
-                    <p className="px-2 py-1 text-[11px]">Signature of applicant</p>
                   </section>
 
-                  <section className="border border-[#777]">
-                    {formSectionHeading("For official use (Campus)")}
+                  <section>
+                    <h3 className="bg-[#F3F3F3] px-2 py-1.5 text-[11px] font-semibold uppercase leading-snug text-[#E86F2A]">
+                      For official use (Campus)
+                    </h3>
                     <p className="px-2 py-2 text-xs leading-snug">
                       We hereby approve this certificate application and confirm that the above
                       details have been verified and are correct as per the records maintained in
                       our center.
                     </p>
-                    <div className="grid grid-cols-1 border-t border-[#777] sm:grid-cols-2">
-                      <p className="border-b border-r border-[#777] px-2 py-2 text-xs">
+                    <div>
+                      <p className="px-2 py-2 text-xs">
                         Date: {availableDate(view.approvalDate ?? "2026-11-02")}
                       </p>
-                      <div className="px-2 py-2 text-xs">
-                        <p className="mb-2 min-h-5 border-b border-dotted border-[#555]">
-                          {available(view.directorSignature)}
-                        </p>
-                        Signature of Director
-                      </div>
                     </div>
                   </section>
                 </article>
