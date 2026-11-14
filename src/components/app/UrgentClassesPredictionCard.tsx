@@ -15,9 +15,7 @@ export function UrgentClassesPredictionCard({ className = "" }: { className?: st
           AI Prediction
         </span>
       </div>
-      <p className="es-ai-message">
-        3 students need urgent classes in <strong>Power BI</strong> this week!
-      </p>
+      <p className="es-ai-message">Immediate action!</p>
       <div className="es-ai-body">
         <ul className="es-student-list">
           {students.map((student) => (

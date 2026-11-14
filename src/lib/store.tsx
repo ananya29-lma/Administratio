@@ -30,6 +30,7 @@ export type CollectionName =
   | "payments"
   | "batches"
   | "leaves"
+  | "facultyLeaveRequests"
   | "late"
   | "outgoing"
   | "absences"
@@ -47,7 +48,8 @@ export type CollectionName =
   | "committedStudents"
   | "examRequests"
   | "examApprovals"
-  | "feeVerificationRequests";
+  | "feeVerificationRequests"
+  | "examNotifications";
 
 export interface Settings {
   institution: string;
@@ -72,6 +74,7 @@ const initial: Record<CollectionName, Row[]> = {
   payments: M.INITIAL_PAYMENTS,
   batches: M.INITIAL_BATCHES,
   leaves: M.INITIAL_LEAVES,
+  facultyLeaveRequests: M.INITIAL_FACULTY_LEAVE_REQUESTS,
   late: M.INITIAL_LATE,
   outgoing: M.INITIAL_OUTGOING,
   absences: M.INITIAL_ABSENCES,
@@ -90,6 +93,7 @@ const initial: Record<CollectionName, Row[]> = {
   examRequests: M.INITIAL_EXAM_REQUESTS,
   examApprovals: M.INITIAL_EXAM_APPROVALS,
   feeVerificationRequests: M.INITIAL_FEE_VERIFICATION_REQUESTS,
+  examNotifications: [],
 };
 
 const initialSettings: Settings = {

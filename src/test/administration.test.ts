@@ -6,11 +6,16 @@ import {
   attendancePercentage,
   academicMarksError,
   academicTopicTotal,
+  availableFacultyAtTime,
+  completedExamDate,
   countUniqueStudents,
   expandRecurrenceRule,
   examApprovalError,
   examFeeEligibility,
+  examSessionStatus,
   examScheduleAfterClassEnd,
+  facultyAvailableAtTime,
+  findFacultyFreeSlots,
   facultyCalendarAvailability,
   facultyFreeSlot,
   feeTotals,
@@ -43,6 +48,7 @@ import {
   INITIAL_CERTS,
   INITIAL_EXAM_REQUESTS,
   INITIAL_LEAVES,
+  INITIAL_PAYMENTS,
   INITIAL_SCHEDULED_CLASSES,
   INITIAL_STUDENTS,
   INITIAL_TASKS,
@@ -72,6 +78,27 @@ describe("Administration calculations", () => {
       attendancePercentage([{ status: "P" }, { status: "L" }, { status: "A" }, { status: "H" }]),
     ).toBe(67);
     expect(attendancePercentage([{ status: "H" }])).toBeNull();
+  });
+
+  it("marks scheduled exams completed only after all exam sessions have passed", () => {
+    const exam = {
+      scheduled: true,
+      examDate: "2026-11-01",
+      practicalDate: "2026-11-01",
+      theoryDate: "2026-11-02",
+      industrialVivaDate: "2026-11-03",
+      technicalVivaDate: "2026-11-04",
+    };
+
+    expect(completedExamDate(exam, "2026-11-05")).toBe("2026-11-04");
+    expect(completedExamDate(exam, "2026-11-04")).toBeUndefined();
+    expect(completedExamDate({ ...exam, scheduled: false }, "2026-11-05")).toBeUndefined();
+  });
+
+  it("reports whether an individual exam session is completed, scheduled, or missing", () => {
+    expect(examSessionStatus("2026-11-03", "2026-11-04")).toBe("Completed");
+    expect(examSessionStatus("2026-11-04", "2026-11-04")).toBe("Scheduled");
+    expect(examSessionStatus(undefined, "2026-11-04")).toBe("Not scheduled");
   });
 
   it("detects duplicate student attendance per date and class session", () => {
@@ -106,6 +133,8 @@ describe("Administration calculations", () => {
   it("calculates academic topic totals and rejects invalid marks", () => {
     expect(academicTopicTotal(18, 72)).toBe(90);
     expect(academicTopicTotal("", 72)).toBe(72);
+    expect(academicTopicTotal(84, 79, 8, 7)).toBe(178);
+    expect(academicTopicTotal(84, 79, 8, 7, 5)).toBe(183);
     expect(academicMarksError(18, 72)).toBeUndefined();
     expect(academicMarksError(-1, 72)).toBe("Marks must be valid non-negative numbers");
     expect(academicMarksError("not a mark", 72)).toBe("Marks must be valid non-negative numbers");
@@ -510,6 +539,104 @@ describe("Administration calculations", () => {
     ).toBe("busy");
   });
 
+  it("selects a faculty member without a class during the scheduled time", () => {
+    const classes = [
+      {
+        facultyName: "Alex",
+        date: "2026-10-19",
+        startTime: "10:00",
+        endTime: "11:00",
+      },
+    ];
+
+    expect(
+      availableFacultyAtTime(["Alex", "Jordan"], "2026-10-19", "10:30", "11:30", classes, []),
+    ).toBe("Jordan");
+    expect(
+      availableFacultyAtTime(["Alex", "Jordan"], "2026-10-19", "11:00", "12:00", classes, []),
+    ).toBe("Alex");
+  });
+
+  it("treats a faculty alias as busy when its calendar identifier has a suffix", () => {
+    expect(
+      facultyAvailableAtTime(
+        ["Priyanka", "Priyanka (AI)"],
+        "2026-10-19",
+        "10:30",
+        "11:30",
+        [
+          {
+            facultyName: "Priyanka (AI)",
+            date: "2026-10-19",
+            startTime: "10:00",
+            endTime: "11:00",
+          },
+        ],
+        [],
+      ),
+    ).toBe(false);
+  });
+
+  it("finds separate free faculty slots for viva exams and skips conflicting bookings", () => {
+    const faculty = "Alex";
+    const startDate = "2026-10-19";
+    const mondaySlot = facultyFreeSlot(0, startDate);
+    const appointments = findFacultyFreeSlots(
+      faculty,
+      startDate,
+      0,
+      [
+        {
+          facultyName: faculty,
+          date: startDate,
+          startTime: mondaySlot.startTime,
+          endTime: mondaySlot.endTime,
+        },
+      ],
+      [],
+      2,
+    );
+
+    expect(appointments).toEqual([
+      { date: "2026-10-20", startTime: "11:00", endTime: "13:00" },
+      { date: "2026-10-21", startTime: "14:00", endTime: "16:00" },
+    ]);
+  });
+
+  it("blocks recurring faculty classes when finding free viva slots", () => {
+    const appointments = findFacultyFreeSlots(
+      "Alex",
+      "2026-10-19",
+      0,
+      [
+        {
+          facultyName: "Alex",
+          date: "2026-10-19",
+          startTime: "09:00",
+          endTime: "11:00",
+          recurrenceRule: {
+            interval: 1,
+            unit: "week",
+            daysOfWeek: [1],
+            monthlyMode: "dayOfMonth",
+            ends: { type: "never", date: "", count: 0 },
+            startDate: "2026-10-19",
+            startTime: "09:00",
+            endTime: "11:00",
+          },
+        },
+      ],
+      [],
+      1,
+    );
+
+    expect(appointments[0]).toEqual({
+      date: "2026-10-20",
+      startTime: "11:00",
+      endTime: "13:00",
+    });
+  });
+
   it("assigns each sample admission a unique generated admission number", () => {
     const admissionNumbers = INITIAL_ADMISSIONS.map((admission) => admission.admissionNo);
 
@@ -592,7 +719,10 @@ describe("Administration calculations", () => {
   });
   it("includes the matching existing student roster beyond enrolled admissions", () => {
     const request = INITIAL_EXAM_REQUESTS[0];
-    const rosterStudents = studentsForExamRequest(INITIAL_STUDENTS, request);
+    const rosterStudents = studentsForExamRequest(INITIAL_STUDENTS, {
+      course: request.course,
+      batch: request.batch,
+    });
     const enrolledAdmissions = INITIAL_ADMISSIONS.filter(
       (admission) =>
         admission.status === "Enrolled" &&
@@ -601,6 +731,69 @@ describe("Administration calculations", () => {
     );
 
     expect(rosterStudents.length).toBeGreaterThan(enrolledAdmissions.length);
+  });
+  it("seeds four paid students in each remaining exam cohort", () => {
+    const request = INITIAL_EXAM_REQUESTS[1];
+    const cohortStudents = studentsForExamRequest(INITIAL_STUDENTS, {
+      course: request.course,
+      batch: request.batch,
+    });
+    const eligibility = cohortStudents.map((student) => {
+      const admission = INITIAL_ADMISSIONS.find(
+        (record) =>
+          record.regNo === student.regNo &&
+          record.status === "Enrolled" &&
+          record.course === request.course &&
+          record.batch === request.batch,
+      );
+      const course = COURSES.find((item) => item.name === request.course);
+      const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
+      const monthlyDue = Number(
+        admission?.monthlyFee ??
+          student.monthlyFee ??
+          (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+      );
+      const appNo = String(
+        admission?.appNo ?? student.appNo ?? student.applicationNumber ?? student.regNo,
+      );
+      return examFeeEligibility(appNo, student.regNo, request.month, monthlyDue, INITIAL_PAYMENTS)
+        .eligible;
+    });
+
+    expect(eligibility.filter(Boolean)).toHaveLength(4);
+    expect(eligibility.filter((eligible) => !eligible)).toHaveLength(cohortStudents.length - 4);
+  });
+  it("seeds three paid students and one unpaid student in the first exam cohort", () => {
+    const request = INITIAL_EXAM_REQUESTS[0];
+    const cohortStudents = studentsForExamRequest(INITIAL_STUDENTS, {
+      course: request.course,
+      batch: request.batch,
+    }).sort((a, b) => a.name.localeCompare(b.name));
+    const eligibility = cohortStudents.map((student) => {
+      const admission = INITIAL_ADMISSIONS.find(
+        (record) =>
+          record.regNo === student.regNo &&
+          record.status === "Enrolled" &&
+          record.course === request.course &&
+          record.batch === request.batch,
+      );
+      const course = COURSES.find((item) => item.name === student.course);
+      const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
+      const appNo = String(
+        admission?.appNo ?? student.appNo ?? student.applicationNumber ?? student.regNo,
+      );
+      const monthlyDue = Number(
+        admission?.monthlyFee ??
+          student.monthlyFee ??
+          (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+      );
+      return examFeeEligibility(appNo, student.regNo, request.month, monthlyDue, INITIAL_PAYMENTS)
+        .eligible;
+    });
+
+    expect(cohortStudents).toHaveLength(4);
+    expect(eligibility.filter(Boolean)).toHaveLength(3);
+    expect(eligibility.filter((eligible) => !eligible)).toHaveLength(1);
   });
   it("schedules practical and theory exams four days after class end", () => {
     expect(examScheduleAfterClassEnd("2026-11-07")).toEqual({

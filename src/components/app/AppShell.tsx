@@ -7,12 +7,9 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileCheck2,
-  FolderOpen,
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  Settings,
-  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,21 +21,11 @@ import { cn } from "@/lib/utils";
 import { RibbonFolderIcon } from "@/components/app/RibbonFolderIcon";
 
 type NavigationTarget =
-  | "/"
-  | "/student-records"
-  | "/batches"
-  | "/exam-requests"
-  | "/settings"
-  | "/attendance"
-  | "/leave"
-  | "/records"
-  | "/certificates";
+  "/" | "/batches" | "/exam-requests" | "/attendance" | "/leave" | "/certificates";
 type NavigationItem = { to?: NavigationTarget; label: string; icon: LucideIcon };
 
 const PRIMARY_NAV: NavigationItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/records", label: "Admission Records", icon: FolderOpen },
-  { to: "/student-records", label: "Students", icon: UsersRound },
   { to: "/batches", label: "Batch Allocation", icon: CalendarClock },
   { to: "/attendance", label: "Academic Information", icon: CalendarCheck },
   { to: "/exam-requests", label: "Examination", icon: ClipboardCheck },
@@ -47,7 +34,6 @@ const PRIMARY_NAV: NavigationItem[] = [
 const MORE_NAV: NavigationItem[] = [
   { to: "/leave", label: "Leave Approvals", icon: CheckCircle2 },
   { to: "/certificates", label: "Certificates", icon: FileCheck2 },
-  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {

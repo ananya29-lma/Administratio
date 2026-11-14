@@ -494,28 +494,52 @@ export const INITIAL_EXAM_REQUESTS: Row[] = INITIAL_BATCHES.filter(
     rejectionReason: "",
   }));
 
-// Verify existing sample admissions in the first cohort too, so the request can be approved as a fully paid group.
-const allPaidRequest = INITIAL_EXAM_REQUESTS[0];
-if (allPaidRequest) {
-  INITIAL_ADMISSIONS.filter(
-    (admission) =>
-      admission.status === "Enrolled" &&
-      admission.course === allPaidRequest.course &&
-      admission.batch === allPaidRequest.batch,
-  ).forEach((admission, index) => {
-    const course = COURSES.find((item) => item.name === admission.course);
-    const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
-    const amount = Number(
-      admission.monthlyFee ?? (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+// Seed three paid students and one unpaid student in the first exam cohort.
+const firstExamRequest = INITIAL_EXAM_REQUESTS[0];
+if (firstExamRequest) {
+  const cohortStudents = INITIAL_STUDENTS.filter(
+    (student) =>
+      student.course === firstExamRequest.course && student.batch === firstExamRequest.batch,
+  ).sort((first, second) => first.name.localeCompare(second.name));
+  const cohortStudentPayments = cohortStudents.map((student) => {
+    const admission = INITIAL_ADMISSIONS.find(
+      (record) =>
+        record.regNo === student.regNo &&
+        record.status === "Enrolled" &&
+        record.course === firstExamRequest.course &&
+        record.batch === firstExamRequest.batch,
     );
+    const course = COURSES.find((item) => item.name === student.course);
+    const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
+    const appNo = String(
+      admission?.appNo ?? student.appNo ?? student.applicationNumber ?? student.regNo,
+    );
+    const monthlyDue = Number(
+      admission?.monthlyFee ??
+        student.monthlyFee ??
+        (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+    );
+    return { student, admission, appNo, monthlyDue };
+  });
+  const cohortPaymentKeys = new Set(
+    cohortStudentPayments.map(({ appNo, student }) => `${appNo}|${student.regNo}`),
+  );
+  const unrelatedPayments = INITIAL_PAYMENTS.filter(
+    (payment) =>
+      !cohortPaymentKeys.has(`${payment.appNo}|${payment.regNo}`) ||
+      String(payment.date ?? "").slice(0, 7) !== firstExamRequest.month,
+  );
+  INITIAL_PAYMENTS.splice(0, INITIAL_PAYMENTS.length, ...unrelatedPayments);
+
+  cohortStudentPayments.slice(0, 3).forEach(({ student, admission, appNo, monthlyDue }, index) => {
     INITIAL_PAYMENTS.push({
       receiptNo: `EXAM-COHORT-PAY-${pad(index + 1, 4)}`,
-      appNo: admission.appNo,
-      admissionNo: admission.admissionNo,
-      regNo: admission.regNo,
-      name: admission.name,
-      date: `${allPaidRequest.month}-05`,
-      amount,
+      appNo,
+      admissionNo: admission?.admissionNo,
+      regNo: student.regNo,
+      name: student.name,
+      date: `${firstExamRequest.month}-05`,
+      amount: monthlyDue,
       method: "UPI",
       reference: `EXAM-COHORT-SAMPLE-${pad(index + 1, 4)}`,
       component: "Tuition Fee",
@@ -525,6 +549,46 @@ if (allPaidRequest) {
     });
   });
 }
+INITIAL_EXAM_REQUESTS.slice(1).forEach((request, requestIndex) => {
+  INITIAL_STUDENTS.filter(
+    (student) => student.course === request.course && student.batch === request.batch,
+  )
+    .slice(0, 4)
+    .forEach((student, studentIndex) => {
+      const admission = INITIAL_ADMISSIONS.find(
+        (item) =>
+          item.status === "Enrolled" &&
+          item.regNo === student.regNo &&
+          item.course === request.course &&
+          item.batch === request.batch,
+      );
+      const course = COURSES.find((item) => item.name === request.course);
+      const months = Number(String(course?.duration ?? "").match(/\d+/)?.[0] ?? 0);
+      const appNo = String(
+        admission?.appNo ?? student.appNo ?? student.applicationNumber ?? student.regNo,
+      );
+      const amount = Number(
+        admission?.monthlyFee ??
+          student.monthlyFee ??
+          (months > 0 ? Number(course?.tuition ?? 0) / months : 0),
+      );
+      INITIAL_PAYMENTS.push({
+        receiptNo: `EXAM-COHORT-PAY-${pad(100 + requestIndex * 10 + studentIndex, 4)}`,
+        appNo,
+        admissionNo: admission?.admissionNo,
+        regNo: student.regNo,
+        name: student.name,
+        date: `${request.month}-05`,
+        amount,
+        method: "UPI",
+        reference: `EXAM-COHORT-SAMPLE-${pad(100 + requestIndex * 10 + studentIndex, 4)}`,
+        component: "Tuition Fee",
+        installment: 1,
+        verified: true,
+        remarks: "Verified sample exam-month tuition payment",
+      });
+    });
+});
 INITIAL_EXAM_REQUESTS.forEach((request, index) => {
   request.studentCount = [4, 9, 8, 3][index] ?? request.studentCount;
 });
@@ -651,6 +715,53 @@ const staff = [
   "Pooja (Management)",
 ];
 export const STAFF = staff;
+
+export const INITIAL_FACULTY_LEAVE_REQUESTS: Row[] = [
+  {
+    id: "FLR-001",
+    faculty: "Priyanka (AI)",
+    department: "AI",
+    startDate: "2026-11-20",
+    endDate: "2026-11-21",
+    days: 2,
+    reason: "Personal work",
+    submittedOn: "2026-11-10",
+    status: "Pending",
+  },
+  {
+    id: "FLR-002",
+    faculty: "Anvitha (Multimedia)",
+    department: "Multimedia",
+    startDate: "2026-11-24",
+    endDate: "2026-11-24",
+    days: 1,
+    reason: "Medical appointment",
+    submittedOn: "2026-11-08",
+    status: "Pending",
+  },
+  {
+    id: "FLR-003",
+    faculty: "Harshika (Accounts)",
+    department: "Accounts",
+    startDate: "2026-11-14",
+    endDate: "2026-11-15",
+    days: 2,
+    reason: "Family function",
+    submittedOn: "2026-11-03",
+    status: "Approved",
+  },
+  {
+    id: "FLR-004",
+    faculty: "Pooja (Management)",
+    department: "Management",
+    startDate: "2026-11-12",
+    endDate: "2026-11-12",
+    days: 1,
+    reason: "Personal work",
+    submittedOn: "2026-11-02",
+    status: "Rejected",
+  },
+];
 
 export const INITIAL_SCHEDULED_CLASSES: Row[] = [];
 export const INITIAL_TASKS: Row[] = [];

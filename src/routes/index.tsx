@@ -119,7 +119,7 @@ function Dashboard() {
                 <BarChart3 size={19} />
               </span>
               <div>
-                <h2>Students Record Trend</h2>
+                <h2>Admission Trend</h2>
                 <p>Student records by month</p>
               </div>
             </div>

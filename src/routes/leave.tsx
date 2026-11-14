@@ -1,16 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarCheck, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DataTable,
@@ -22,7 +14,7 @@ import {
 } from "@/components/app/kit";
 import { useCollection, useStore } from "@/lib/store";
 import { useStudentPicker } from "@/lib/use-students";
-import { addDays, TODAY, type Row } from "@/lib/mock";
+import { addDays, type Row } from "@/lib/mock";
 import { batchCategory, summarizeLeaveRequests } from "@/lib/administration";
 import { daysBetween, fmtDate } from "@/lib/format";
 import { studentIdForRegistration } from "@/lib/student-records";
@@ -33,67 +25,22 @@ export const Route = createFileRoute("/leave")({
   component: Leave,
 });
 
-const formatIndianDate = (value: string) => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
-};
-
-const parseIndianDate = (value: string) => {
-  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value.trim());
-  if (!match) return null;
-  const [, day, month, year] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  if (
-    date.getUTCFullYear() !== Number(year) ||
-    date.getUTCMonth() !== Number(month) - 1 ||
-    date.getUTCDate() !== Number(day)
-  ) {
-    return null;
-  }
-  return `${year}-${month}-${day}`;
-};
-
 function Leave() {
   const lv = useCollection("leaves", "id");
   const { data, settings } = useStore();
   const picker = useStudentPicker(true);
   const [tab, setTab] = useState("Pending");
   const [form, setForm] = useState<Row | null>(null);
-  const [review, setReview] = useState<Row | null>(null);
-  const [letterDate, setLetterDate] = useState("");
-  const [rejoinedDate, setRejoinedDate] = useState("");
-  const [reasonText, setReasonText] = useState("");
-  const reasonFieldRef = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const field = reasonFieldRef.current;
-    if (!field) return;
-    field.style.height = "auto";
-    field.style.height = `${field.scrollHeight}px`;
-  }, [reasonText, review]);
-
-  const saveLetterFields = (status?: "Approved" | "Rejected") => {
-    if (!review) return false;
-    const storedRejoinedDate = parseIndianDate(rejoinedDate);
-    if (storedRejoinedDate === null && rejoinedDate.trim() !== "") {
-      toast.error("Enter the rejoin date as DD-MM-YYYY.");
-      return false;
-    }
-    lv.update(review.id, {
-      ...(status ? { status } : {}),
-      letterDate,
-      rejoinedDate: storedRejoinedDate ?? "",
-      reason: reasonText,
-    });
-    return true;
-  };
 
   const leaveSummary = summarizeLeaveRequests(lv.rows);
   const count = (s: string) => lv.rows.filter((r) => r.status === s).length;
-  const rows = (tab === "All" ? lv.rows : lv.rows.filter((r) => r.status === tab)).map((row) => ({
-    ...row,
-    studentId: studentIdForRegistration(row.regNo, data, settings.prefixes.student),
-  }));
+  const rows = (tab === "All" ? lv.rows : lv.rows.filter((r) => r.status === tab)).map(
+    (row, index) => ({
+      ...row,
+      studentId: studentIdForRegistration(row.regNo, data, settings.prefixes.student),
+      serialNo: index + 1,
+    }),
+  );
   const admissionNoFor = (regNo: unknown) =>
     data.admissions.find((admission) => admission.regNo === regNo)?.admissionNo ?? "—";
 
@@ -143,21 +90,6 @@ function Leave() {
     });
     toast.success(`Leave request ${v.id} submitted`);
   };
-  const decide = (to: "Approved" | "Rejected") => {
-    if (!review || !saveLetterFields(to)) return;
-    toast.success(`${review.id} ${to.toLowerCase()} for ${review.name}`);
-    setReview(null);
-  };
-  const open = (r: Row) => {
-    setReview(r);
-    setLetterDate(String(r.letterDate ?? (r.submitted ? fmtDate(r.submitted) : fmtDate(TODAY))));
-    setRejoinedDate(formatIndianDate(String(r.rejoinedDate ?? addDays(r.end, 1))));
-    setReasonText(String(r.reason ?? ""));
-  };
-  const closeReview = () => {
-    if (!saveLetterFields()) return;
-    setReview(null);
-  };
   return (
     <div className="space-y-6">
       <PageHeader
@@ -204,29 +136,13 @@ function Leave() {
       <DataTable
         rows={rows}
         searchKeys={["id", "name", "regNo", "admissionNo", "reason", "rejoinedDate"]}
-        onRowDoubleClick={open}
         emptyText={`No ${tab === "All" ? "" : tab.toLowerCase() + " "}leave requests`}
         columns={[
-          {
-            key: "id",
-            label: "Request No",
-            render: (r) => <span className="font-mono text-xs">{r.id}</span>,
-          },
+          { key: "serialNo", label: "Sl.No", sortable: false },
           {
             key: "name",
             label: "Student",
-            render: (r) => (
-              <button
-                type="button"
-                className="font-medium text-primary underline-offset-4 hover:underline"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  open(r);
-                }}
-              >
-                {r.name}
-              </button>
-            ),
+            render: (r) => <span className="font-medium">{r.name}</span>,
           },
           {
             key: "studentId",
@@ -247,9 +163,9 @@ function Leave() {
             render: (r) => `${fmtDate(r.start)} – ${fmtDate(r.end)}`,
           },
           {
-            key: "rejoinedDate",
-            label: "Rejoin Date",
-            render: (r) => formatIndianDate(String(r.rejoinedDate ?? addDays(r.end, 1))),
+            key: "reason",
+            label: "Reason for Leave",
+            render: (r) => r.reason || "—",
           },
           {
             key: "days",
@@ -259,7 +175,38 @@ function Leave() {
           {
             key: "status",
             label: "Status",
-            render: (r) => <StatusBadge status={r.status} leave />,
+            render: (r) =>
+              r.status === "Pending" ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      lv.update(r.id, { status: "Approved" });
+                      toast.success(`${r.id} approved for ${r.name}`);
+                    }}
+                  >
+                    <CheckCircle2 className="mr-1 h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      lv.update(r.id, { status: "Rejected" });
+                      toast.success(`${r.id} rejected for ${r.name}`);
+                    }}
+                  >
+                    <XCircle className="mr-1 h-4 w-4" />
+                    Reject
+                  </Button>
+                </div>
+              ) : (
+                <StatusBadge status={r.status} leave />
+              ),
           },
         ]}
       />
@@ -284,96 +231,6 @@ function Leave() {
           ) : null
         }
       </FormDialog>
-
-      <Dialog open={!!review} onOpenChange={(o) => !o && closeReview()}>
-        <DialogContent className="print-dialog max-h-[92vh] overflow-auto sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Student Leave Letter</DialogTitle>
-          </DialogHeader>
-          {review && (
-            <div className="space-y-4">
-              <div className="print-area skillai-leave-letter">
-                <p className="skillai-letter-date">
-                  <strong>Date: </strong>
-                  <input
-                    className="skillai-letter-field skillai-date-field"
-                    aria-label="Letter date"
-                    value={letterDate}
-                    onChange={(event) => setLetterDate(event.target.value)}
-                    placeholder="_____________"
-                  />
-                </p>
-                <div className="skillai-letter-recipient">
-                  <p>To,</p>
-                  <p>The Campus Administrator,</p>
-                  <p>Skill AI,</p>
-                </div>
-                <p className="skillai-letter-subject">
-                  <strong>Subject: </strong>
-                  <strong>Application for Post Leave Approval</strong>
-                </p>
-                <p className="skillai-letter-salutation">Respected Sir / Madam,</p>
-                <p className="skillai-letter-paragraph">
-                  I, <strong>{String(review.name ?? "")}</strong>, a student of{" "}
-                  {String(review.course ?? "")} course (Admission No.{" "}
-                  <strong>{String(review.admissionNo ?? admissionNoFor(review.regNo))}</strong>),
-                  was absent from the campus from {fmtDate(review.start)} to {fmtDate(review.end)} (
-                  <strong>{Number(review.days ?? daysBetween(review.start, review.end))}</strong>{" "}
-                  days) due to the following reason:
-                </p>
-                <Textarea
-                  ref={reasonFieldRef}
-                  aria-label="Reason for absence"
-                  className="skillai-reason-field font-bold"
-                  rows={1}
-                  value={reasonText}
-                  onChange={(event) => setReasonText(event.target.value)}
-                />
-                <p className="skillai-letter-paragraph skillai-rejoin-paragraph">
-                  I have rejoined classes on{" "}
-                  <input
-                    className="skillai-letter-field skillai-rejoined-field"
-                    aria-label="Date rejoined classes"
-                    type="text"
-                    value={rejoinedDate}
-                    onChange={(event) => setRejoinedDate(event.target.value)}
-                    placeholder="DD-MM-YYYY"
-                    style={{ fontWeight: 700 }}
-                  />
-                  . I sincerely apologise for any inconvenience caused and request you to kindly
-                  regularise my absence. I assure you that I will complete all missed lessons,
-                  practical works, and I will inform the campus in advance in future.
-                </p>
-                <p className="skillai-supporting-document">
-                  Supporting document attached (if any): {review.doc ? String(review.doc) : ""}
-                </p>
-                <p className="skillai-letter-closing">Thanking you,</p>
-                <p className="skillai-letter-faithfully">Yours faithfully,</p>
-                <p className="skillai-student-signature-name">
-                  <strong>{String(review.name ?? "")}</strong>
-                </p>
-              </div>
-              <DialogFooter className="no-print">
-                <Button variant="outline" onClick={closeReview}>
-                  Close
-                </Button>
-                {review.status === "Pending" && (
-                  <>
-                    <Button variant="destructive" onClick={() => decide("Rejected")}>
-                      <XCircle className="mr-1.5 h-4 w-4" />
-                      Reject
-                    </Button>
-                    <Button onClick={() => decide("Approved")}>
-                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                      Approve
-                    </Button>
-                  </>
-                )}
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

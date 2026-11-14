@@ -16,6 +16,7 @@ import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as BatchesRouteImport } from './routes/batches'
 import { Route as CertificatesRouteImport } from './routes/certificates'
 import { Route as ExamRequestsRouteImport } from './routes/exam-requests'
+import { Route as FacultyLeaveRequestsRouteImport } from './routes/faculty-leave-requests'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as LeaveRouteImport } from './routes/leave'
 import { Route as RecordsRouteImport } from './routes/records'
@@ -58,6 +59,11 @@ const ExamRequestsRoute = ExamRequestsRouteImport.update({
   path: '/exam-requests',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FacultyLeaveRequestsRoute = FacultyLeaveRequestsRouteImport.update({
+  id: '/faculty-leave-requests',
+  path: '/faculty-leave-requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeesRoute = FeesRouteImport.update({
   id: '/fees',
   path: '/fees',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
   '/exam-requests': typeof ExamRequestsRoute
+  '/faculty-leave-requests': typeof FacultyLeaveRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
   '/exam-requests': typeof ExamRequestsRoute
+  '/faculty-leave-requests': typeof FacultyLeaveRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/batches': typeof BatchesRoute
   '/certificates': typeof CertificatesRoute
   '/exam-requests': typeof ExamRequestsRoute
+  '/faculty-leave-requests': typeof FacultyLeaveRequestsRoute
   '/fees': typeof FeesRoute
   '/leave': typeof LeaveRoute
   '/records': typeof RecordsRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/batches'
     | '/certificates'
     | '/exam-requests'
+    | '/faculty-leave-requests'
     | '/fees'
     | '/leave'
     | '/records'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/batches'
     | '/certificates'
     | '/exam-requests'
+    | '/faculty-leave-requests'
     | '/fees'
     | '/leave'
     | '/records'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/batches'
     | '/certificates'
     | '/exam-requests'
+    | '/faculty-leave-requests'
     | '/fees'
     | '/leave'
     | '/records'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   BatchesRoute: typeof BatchesRoute
   CertificatesRoute: typeof CertificatesRoute
   ExamRequestsRoute: typeof ExamRequestsRoute
+  FacultyLeaveRequestsRoute: typeof FacultyLeaveRequestsRoute
   FeesRoute: typeof FeesRoute
   LeaveRoute: typeof LeaveRoute
   RecordsRoute: typeof RecordsRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamRequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faculty-leave-requests': {
+      id: '/faculty-leave-requests'
+      path: '/faculty-leave-requests'
+      fullPath: '/faculty-leave-requests'
+      preLoaderRoute: typeof FacultyLeaveRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fees': {
       id: '/fees'
       path: '/fees'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   BatchesRoute: BatchesRoute,
   CertificatesRoute: CertificatesRoute,
   ExamRequestsRoute: ExamRequestsRoute,
+  FacultyLeaveRequestsRoute: FacultyLeaveRequestsRoute,
   FeesRoute: FeesRoute,
   LeaveRoute: LeaveRoute,
   RecordsRoute: RecordsRoute,

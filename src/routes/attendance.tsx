@@ -50,32 +50,40 @@ const SAMPLE_ACADEMIC_TOPICS = [
     topic: "Computer Fundamentals",
     start: "01-12",
     end: "01-20",
-    practical: 18,
-    theory: 17,
+    practical: 84,
+    theory: 79,
+    industrialViva: 8,
+    technicalViva: 7,
   },
   {
     key: "office",
     topic: "Office Applications",
     start: "02-03",
     end: "02-14",
-    practical: 20,
-    theory: 18,
+    practical: 91,
+    theory: 86,
+    industrialViva: 9,
+    technicalViva: 8,
   },
   {
     key: "web",
     topic: "Web Design Basics",
     start: "03-02",
     end: "03-18",
-    practical: 19,
-    theory: 16,
+    practical: 76,
+    theory: 88,
+    industrialViva: 7,
+    technicalViva: 9,
   },
   {
     key: "programming",
     topic: "Programming Essentials",
     start: "04-01",
     end: "04-22",
-    practical: 17,
-    theory: 18,
+    practical: 85,
+    theory: 90,
+    industrialViva: 8,
+    technicalViva: 8,
   },
 ];
 const sampleAttendanceByYear = new Map<string, Map<string, string>>();
@@ -131,7 +139,7 @@ function Attendance() {
   const admissions = data.admissions;
   const batches = data.batches;
   const [showAttendanceDashboard, setShowAttendanceDashboard] = useState(false);
-  const students: Row[] = data.students.map((student) => {
+  const students: Row[] = data.students.map((student, index) => {
     const admission = admissions.find((row) => row.regNo === student.regNo);
     const batch = batches.find(
       (row) => row.name === (admission?.batch ?? student.batch) || row.id === student.batch,
@@ -145,6 +153,7 @@ function Attendance() {
       batchId: batch?.id ?? String(admission?.batch ?? student.batch ?? ""),
       faculty: batch?.instructor ?? "",
       startDate: admission?.startDate ?? admission?.admissionDate,
+      serialNo: index + 1,
     };
   });
   const selectedStudent = students.find((student) => student.regNo === selectedRegNo);
@@ -197,9 +206,26 @@ function Attendance() {
           endDate: `${yearFilter}-${sample.end}`,
           practical: sample.practical,
           theory: sample.theory,
-          total: academicTopicTotal(sample.practical, sample.theory),
+          industrialViva: sample.industrialViva,
+          technicalViva: sample.technicalViva,
+          total: academicTopicTotal(
+            sample.practical,
+            sample.theory,
+            sample.industrialViva,
+            sample.technicalViva,
+            sample.project,
+          ),
         })),
-        ...savedTopics,
+        ...savedTopics.map((topic) => ({
+          ...topic,
+          total: academicTopicTotal(
+            topic.practical,
+            topic.theory,
+            topic.industrialViva,
+            topic.technicalViva,
+            topic.project,
+          ),
+        })),
       ]
     : [];
   const completion = selectedStudent
@@ -303,12 +329,18 @@ function Attendance() {
           <DataTable
             rows={students}
             pageSize={Math.max(students.length, 1)}
+            pagination={false}
             searchKeys={["name", "regNo", "admissionNo", "course", "batch", "mobile"]}
             onRowClick={(student) => {
               setShowAttendanceDashboard(false);
               setSelectedRegNo(String(student.regNo));
             }}
             columns={[
+              {
+                key: "serialNo",
+                label: "Sl.No",
+                sortable: false,
+              },
               {
                 key: "name",
                 label: "Student Name",
@@ -430,7 +462,7 @@ function Attendance() {
               </Panel>
               <Panel title="Topic-wise Academic Progress">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left text-sm">
+                  <table className="w-full min-w-[960px] text-left text-sm">
                     <thead>
                       <tr className="border-b text-xs text-muted-foreground">
                         {[
@@ -438,8 +470,19 @@ function Attendance() {
                           "Topic",
                           "St. Date",
                           "End Date",
-                          "Practical",
-                          "Theory",
+                          "Practical (/100)",
+                          "Theory (/100)",
+                          <>
+                            Viva (/10)
+                            <br />
+                            (Industrial)
+                          </>,
+                          <>
+                            Viva (/10)
+                            <br />
+                            (Technical)
+                          </>,
+                          "Project",
                           "Total Mark",
                         ].map((heading) => (
                           <th key={heading} className="px-2 py-2 font-medium">
@@ -457,12 +500,15 @@ function Attendance() {
                           <td className="px-2 py-2">{fmtDate(topic.endDate)}</td>
                           <td className="px-2 py-2">{topic.practical ?? "—"}</td>
                           <td className="px-2 py-2">{topic.theory ?? "—"}</td>
+                          <td className="px-2 py-2">{topic.industrialViva ?? "—"}</td>
+                          <td className="px-2 py-2">{topic.technicalViva ?? "—"}</td>
+                          <td className="px-2 py-2">{topic.project ?? "—"}</td>
                           <td className="px-2 py-2">{topic.total ?? "—"}</td>
                         </tr>
                       ))}
                       {!selectedTopics.length && (
                         <tr>
-                          <td className="px-2 py-6 text-center text-muted-foreground" colSpan={7}>
+                          <td className="px-2 py-6 text-center text-muted-foreground" colSpan={10}>
                             No academic topic records yet.
                           </td>
                         </tr>
@@ -482,6 +528,24 @@ function Attendance() {
                         <td className="px-2 py-2">
                           {selectedTopics.reduce(
                             (sum, topic) => sum + Number(topic.theory ?? 0),
+                            0,
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {selectedTopics.reduce(
+                            (sum, topic) => sum + Number(topic.industrialViva ?? 0),
+                            0,
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {selectedTopics.reduce(
+                            (sum, topic) => sum + Number(topic.technicalViva ?? 0),
+                            0,
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {selectedTopics.reduce(
+                            (sum, topic) => sum + Number(topic.project ?? 0),
                             0,
                           )}
                         </td>

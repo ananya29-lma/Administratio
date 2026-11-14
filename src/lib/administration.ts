@@ -69,11 +69,18 @@ export function hasDuplicateAttendance(
   );
 }
 
-export function academicTopicTotal(practical: unknown, theory: unknown): number {
-  const practicalMark =
-    practical === "" || practical === null || practical === undefined ? 0 : Number(practical);
-  const theoryMark = theory === "" || theory === null || theory === undefined ? 0 : Number(theory);
-  return practicalMark + theoryMark;
+export function academicTopicTotal(
+  practical: unknown,
+  theory: unknown,
+  industrialViva?: unknown,
+  technicalViva?: unknown,
+  project?: unknown,
+): number {
+  return [practical, theory, industrialViva, technicalViva, project].reduce(
+    (total, mark) =>
+      total + (mark === "" || mark === null || mark === undefined ? 0 : Number(mark)),
+    0,
+  );
 }
 
 export function academicMarksError(practical: unknown, theory: unknown): string | undefined {
@@ -388,6 +395,26 @@ export function examScheduleAfterClassEnd(classEndDate: string) {
     theoryTime: "10:00",
     theoryEndTime: "13:00",
   };
+}
+
+export function completedExamDate(request: Row, today: string): string | undefined {
+  if (!request.scheduled) return undefined;
+  const examDates = [
+    request.practicalDate || request.examDate,
+    request.theoryDate || request.examDate,
+    request.industrialVivaDate,
+    request.technicalVivaDate,
+  ]
+    .map((date) => String(date ?? ""))
+    .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
+  if (!examDates.length || examDates.some((date) => date >= today)) return undefined;
+  return examDates.sort().at(-1);
+}
+
+export function examSessionStatus(date: unknown, today: string) {
+  const examDate = String(date ?? "");
+  if (!parseIsoDate(examDate)) return "Not scheduled";
+  return examDate < today ? "Completed" : "Scheduled";
 }
 
 export function examApprovalError(
@@ -906,6 +933,65 @@ export function facultyFreeSlot(facultyIndex: number, date: string) {
   return FACULTY_CALENDAR_SLOTS[slotIndex];
 }
 
+export function availableFacultyAtTime(
+  facultyNames: string[],
+  date: string,
+  startTime: string,
+  endTime: string,
+  classes: Row[],
+  tasks: Row[],
+): string | undefined {
+  const candidates = [...new Set(facultyNames.map((name) => name.trim()).filter(Boolean))];
+  return candidates.find((faculty) =>
+    facultyAvailableAtTime([faculty], date, startTime, endTime, classes, tasks),
+  );
+}
+
+export function facultyAvailableAtTime(
+  facultyNames: string[],
+  date: string,
+  startTime: string,
+  endTime: string,
+  classes: Row[],
+  tasks: Row[],
+): boolean {
+  const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+  if (
+    !parseIsoDate(date) ||
+    !validTime.test(startTime) ||
+    !validTime.test(endTime) ||
+    taskTimeError(startTime, endTime)
+  )
+    return false;
+
+  const overlaps = (record: Row) =>
+    typeof record.startTime === "string" &&
+    typeof record.endTime === "string" &&
+    record.startTime < endTime &&
+    startTime < record.endTime;
+  const occursOnDate = (row: Row) => {
+    const rule = row.recurrenceRule as RecurrenceRule | undefined;
+    if (!rule) return row.date === date;
+    const excludedDates = Array.isArray(row.excludedDates) ? row.excludedDates.map(String) : [];
+    return !excludedDates.includes(date) && expandRecurrenceRule(rule, date, date).includes(date);
+  };
+  const names = new Set(facultyNames.map((name) => name.trim()).filter(Boolean));
+  if (!names.size) return false;
+  return (
+    !classes.some(
+      (row) =>
+        names.has(String(row.facultyName ?? "").trim()) && occursOnDate(row) && overlaps(row),
+    ) &&
+    !tasks.some(
+      (row) =>
+        names.has(String(row.assignee ?? "").trim()) &&
+        row.date === date &&
+        row.workflowStatus !== "Draft" &&
+        overlaps(row),
+    )
+  );
+}
+
 export function facultyCalendarAvailability(
   faculty: string,
   date: string,
@@ -919,9 +1005,15 @@ export function facultyCalendarAvailability(
     typeof record.endTime === "string" &&
     record.startTime < slot.endTime &&
     slot.startTime < record.endTime;
+  const occursOnDate = (row: Row) => {
+    const rule = row.recurrenceRule as RecurrenceRule | undefined;
+    if (!rule) return row.date === date;
+    const excludedDates = Array.isArray(row.excludedDates) ? row.excludedDates.map(String) : [];
+    return !excludedDates.includes(date) && expandRecurrenceRule(rule, date, date).includes(date);
+  };
   const hasClass = (slot: (typeof FACULTY_CALENDAR_SLOTS)[number]) =>
     classes.some(
-      (row) => row.facultyName === faculty && row.date === date && overlapsSlot(row, slot),
+      (row) => row.facultyName === faculty && occursOnDate(row) && overlapsSlot(row, slot),
     );
   const hasTask = (slot: (typeof FACULTY_CALENDAR_SLOTS)[number]) =>
     tasks.some(
@@ -943,4 +1035,46 @@ export function facultyCalendarAvailability(
           : ("busy" as const),
     };
   });
+}
+
+export function findFacultyFreeSlots(
+  faculty: string,
+  startDate: string,
+  facultyIndex: number,
+  classes: Row[],
+  tasks: Row[],
+  count: number,
+) {
+  if (!faculty.trim()) throw new Error("A faculty member is required to schedule viva exams");
+  if (!parseIsoDate(startDate))
+    throw new Error("A valid start date is required to schedule viva exams");
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("The number of viva slots to schedule must be a positive integer");
+
+  const appointments: Array<{ date: string; startTime: string; endTime: string }> = [];
+  const reservedClasses = [...classes];
+  const cursor = parseIsoDate(startDate)!;
+  for (let day = 0; day < 366 && appointments.length < count; day++) {
+    const date = localIsoDate(cursor);
+    const freeSlot = facultyCalendarAvailability(
+      faculty,
+      date,
+      facultyIndex,
+      reservedClasses,
+      tasks,
+    ).find((slot) => slot.status === "free");
+    if (freeSlot) {
+      appointments.push({ date, startTime: freeSlot.startTime, endTime: freeSlot.endTime });
+      reservedClasses.push({
+        facultyName: faculty,
+        date,
+        startTime: freeSlot.startTime,
+        endTime: freeSlot.endTime,
+      });
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  if (appointments.length !== count)
+    throw new Error("Could not find enough free faculty slots within the next year");
+  return appointments;
 }

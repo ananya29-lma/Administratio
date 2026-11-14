@@ -285,9 +285,10 @@ export function NativeSelect({
 /* ---------- Data table ---------- */
 export interface Column {
   key: string;
-  label: string;
+  label: ReactNode;
   render?: (r: Row) => ReactNode;
   sortable?: boolean;
+  showSortIndicator?: boolean;
   className?: string;
 }
 export interface Filter {
@@ -304,6 +305,7 @@ export function DataTable({
   searchKeys,
   filters = [],
   pageSize = 10,
+  pagination = true,
   toolbar,
   filterToolbar,
   onRowClick,
@@ -315,6 +317,7 @@ export function DataTable({
   searchKeys?: string[];
   filters?: Filter[];
   pageSize?: number;
+  pagination?: boolean;
   toolbar?: ReactNode;
   filterToolbar?: ReactNode;
   onRowClick?: (r: Row) => void;
@@ -351,7 +354,7 @@ export function DataTable({
   }, [rows, q, fv, sort, searchKeys, filters, searchableValues]);
   useEffect(() => setPage(0), [q, fv]);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const view = filtered.slice(page * pageSize, page * pageSize + pageSize);
+  const view = pagination ? filtered.slice(page * pageSize, page * pageSize + pageSize) : filtered;
 
   return (
     <div className="panel overflow-hidden">
@@ -404,7 +407,8 @@ export function DataTable({
                       }
                     >
                       {c.label}
-                      {sort?.key === c.key &&
+                      {c.showSortIndicator !== false &&
+                        sort?.key === c.key &&
                         (sort.dir === 1 ? (
                           <ArrowUp className="h-3 w-3" />
                         ) : (
@@ -446,31 +450,33 @@ export function DataTable({
         <span>
           {filtered.length} record{filtered.length === 1 ? "" : "s"}
         </span>
-        <div className="flex items-center gap-2">
-          <span>
-            Page {page + 1} of {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            aria-label="Previous page"
-            disabled={page === 0}
-            onClick={() => setPage(page - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            aria-label="Next page"
-            disabled={page >= pages - 1}
-            onClick={() => setPage(page + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {pagination && (
+          <div className="flex items-center gap-2">
+            <span>
+              Page {page + 1} of {pages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Previous page"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Next page"
+              disabled={page >= pages - 1}
+              onClick={() => setPage(page + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

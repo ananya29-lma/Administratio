@@ -73,10 +73,7 @@ function StudentRecords() {
   const { data, saveCommittedStudentRecord, settings } = useStore();
   const [profile, setProfile] = useState<Row | null>(null);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
-  const [savedStudentKeys, setSavedStudentKeys] = useState<Set<string>>(() => new Set());
-  const [generatedCredentialKeys, setGeneratedCredentialKeys] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [credentialSentKeys, setCredentialSentKeys] = useState<Set<string>>(() => new Set());
   const agreementInput = useRef<HTMLInputElement>(null);
   const [visitDate, setVisitDate] = useState("");
   const [visitTime, setVisitTime] = useState("10:00");
@@ -84,7 +81,7 @@ function StudentRecords() {
 
   const rows = useMemo<Row[]>(
     () =>
-      data.students.map((student) => {
+      data.students.map((student, index) => {
         const admission = data.admissions.find((record) => record.regNo === student.regNo);
         const committedRecord = data.committedStudents.find(
           (record) =>
@@ -104,6 +101,7 @@ function StudentRecords() {
             (admission ? admission.fee - admission.discount - admission.paid : null),
           admissionStatus: admission?.status ?? "Not admitted",
           committedRecord,
+          serialNo: index + 1,
         };
       }),
     [data.students, data.admissions, data.committedStudents],
@@ -285,52 +283,10 @@ function StudentRecords() {
       return;
     }
 
+    setCredentialSentKeys((keys) => new Set(keys).add(selectedRecordKey));
     window.location.href = href;
     toast.success("Email draft opened; send it from your email app.");
   };
-  const submitStudentRecord = () => {
-    if (!selectedStudent || !studentProfile) return;
-    try {
-      const applicationNumber =
-        studentProfile.applicationNumber ?? studentProfile.regNo ?? selectedStudent.regNo;
-      const admissionNumber =
-        studentProfile.admissionNumber ??
-        studentProfile.admissionNo ??
-        selectedStudent.admissionNo ??
-        studentProfile.appNo;
-      saveCommittedStudentRecord({
-        ...selectedStudent,
-        ...(selectedStudent.committedRecord ?? {}),
-        studentId: studentIdForRecord(studentProfile, settings.prefixes.student),
-        admissionNumber,
-        applicationNumber,
-        balance:
-          studentProfile.balance ??
-          selectedStudent.balance ??
-          (typeof studentProfile.fee === "number"
-            ? studentProfile.fee -
-              Number(studentProfile.discount ?? 0) -
-              Number(studentProfile.paid ?? 0)
-            : undefined),
-        feeStatus:
-          studentProfile.feeStatus ??
-          (selectedStudent.admissionStatus !== "Not admitted"
-            ? feeStatus(selectedStudent)
-            : undefined),
-        committedAt: new Date().toISOString(),
-      });
-      setSavedStudentKeys((savedKeys) => new Set(savedKeys).add(selectedRecordKey));
-      toast.success(`${studentProfile.name}'s record was submitted`);
-    } catch (error) {
-      console.error("Failed to submit student record", error);
-      toast.error(
-        error instanceof Error
-          ? `Could not submit student record: ${error.message}`
-          : "Could not submit student record. Please try again.",
-      );
-    }
-  };
-
   const uploadAgreement = (file?: File) => {
     if (!file || !selectedStudent || !studentProfile) return;
     if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
@@ -400,10 +356,16 @@ function StudentRecords() {
       <DataTable
         rows={rows}
         searchKeys={["name", "applicationNumber", "regNo", "admissionNumber", "appNo"]}
+        pagination={false}
         onRowClick={(row) => {
           setProfile(row);
         }}
         columns={[
+          {
+            key: "serialNo",
+            label: "Sl.No",
+            sortable: false,
+          },
           {
             key: "admissionNo",
             label: "Admission Number",
@@ -411,15 +373,6 @@ function StudentRecords() {
               <span className="font-mono text-xs">
                 {row.admissionNo ??
                   (row.appNo ? String(row.appNo).replace(/^APP(?=-)/, "ADM") : "Not provided")}
-              </span>
-            ),
-          },
-          {
-            key: "studentId",
-            label: "Student ID",
-            render: (row) => (
-              <span className="font-mono text-xs">
-                {studentIdForRecord(row, settings.prefixes.student) || "Not provided"}
               </span>
             ),
           },
@@ -435,21 +388,6 @@ function StudentRecords() {
           },
           { key: "course", label: "Course", render: (row) => courseCategoryName(row.course) },
           {
-            key: "handbookStatus",
-            label: "Handbook",
-            render: (row) => String(row.handbookStatus ?? "Pending"),
-          },
-          {
-            key: "credentialStatus",
-            label: "Credential Status",
-            render: (row) => {
-              const recordKey = String(row.regNo ?? row.studentId ?? row.admissionNo ?? "");
-              return generatedCredentialKeys.has(recordKey)
-                ? "Generated"
-                : String(row.credentialStatus ?? "Not generated");
-            },
-          },
-          {
             key: "instituteVisitDate",
             label: "Visit Date & Time",
             sortable: false,
@@ -462,8 +400,29 @@ function StudentRecords() {
                   </p>
                 </div>
               ) : (
-                <span className="text-muted-foreground">Not scheduled</span>
+                <span className="text-muted-foreground">-</span>
               ),
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            sortable: false,
+            render: (row) => (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={row.agreementStatus !== "Signed" || row.handbookStatus !== "Issued"}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setProfile(row);
+                  setCredentialsOpen(true);
+                }}
+              >
+                <KeyRound className="h-4 w-4" />
+                Generate Credentials
+              </Button>
+            ),
           },
         ]}
       />
@@ -485,11 +444,13 @@ function StudentRecords() {
               <div className="flex items-start gap-4">
                 <DialogHeader className="min-w-0 flex-1">
                   <DialogTitle>{studentProfile.name || "Student Profile"}</DialogTitle>
-                  <p className="text-xs text-muted-foreground">
-                    Student ID:{" "}
-                    {studentIdForRecord(studentProfile, settings.prefixes.student) ||
-                      "Not provided"}
-                  </p>
+                  {credentialSentKeys.has(selectedRecordKey) && (
+                    <p className="text-xs text-muted-foreground">
+                      Student ID:{" "}
+                      {studentIdForRecord(studentProfile, settings.prefixes.student) ||
+                        "Not provided"}
+                    </p>
+                  )}
                 </DialogHeader>
                 <Button
                   type="button"
@@ -587,7 +548,7 @@ function StudentRecords() {
                         onClick={scheduleInstituteVisit}
                       >
                         <CalendarDays className="mr-1.5 h-4 w-4" />
-                        Schedule Visit
+                        Schedule &amp; Send Email
                       </Button>
                     </div>
                   </div>
@@ -608,7 +569,7 @@ function StudentRecords() {
                   ))}
                 </section>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -633,27 +594,6 @@ function StudentRecords() {
                     Agreement &amp; Handbook
                   </Button>
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setGeneratedCredentialKeys((keys) => new Set(keys).add(selectedRecordKey));
-                      setCredentialsOpen(true);
-                    }}
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    Generate Credentials
-                  </Button>
-                  <Button
-                    type="button"
-                    className="w-56"
-                    onClick={submitStudentRecord}
-                    disabled={savedStudentKeys.has(selectedRecordKey)}
-                  >
-                    {savedStudentKeys.has(selectedRecordKey) ? "Saved" : "Save"}
-                  </Button>
-                </div>
               </div>
             </>
           )}
@@ -667,10 +607,7 @@ function StudentRecords() {
               Student LMS Credentials
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-              {studentProfile?.name || "Selected student"} · Student ID{" "}
-              {studentProfile
-                ? studentIdForRecord(studentProfile, settings.prefixes.student) || "Not provided"
-                : "Not provided"}
+              {studentProfile?.name || "Selected student"}
             </p>
           </DialogHeader>
           <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -434,7 +434,10 @@ function Batches() {
     setShowRecommendation(false);
   };
 
-  const recalculatePlan = (plan: SchedulePlan | undefined, totalSessions: number) => {
+  const recalculatePlan = (
+    plan: SchedulePlan | undefined,
+    totalSessions: number,
+  ): SchedulePlan | undefined => {
     if (!plan || !Number.isInteger(totalSessions) || totalSessions < 1) return undefined;
     const result = buildSchedule({
       startDate: plan.startDate,
@@ -768,7 +771,7 @@ function Batches() {
     Array.isArray(scheduledClass.studentNames)
       ? scheduledClass.studentNames.join(", ")
       : scheduledClass.studentName;
-  const scheduledSessionsOnDate = (date: string) =>
+  const scheduledSessionsOnDate = (date: string): Row[] =>
     scheduledClasses.rows.flatMap((session) => {
       const rule = session.recurrenceRule as RecurrenceRule | undefined;
       if (!rule) return session.date === date ? [{ ...session, seriesId: String(session.id) }] : [];
@@ -788,7 +791,7 @@ function Batches() {
     });
   const renderCalendar = (facultyName: string) => {
     const facultySlots = calendarSlotsByFaculty[facultyName] ?? TIMETABLE_SLOTS;
-    const expandedSessions = scheduledClasses.rows.flatMap((session) => {
+    const expandedSessions: Row[] = scheduledClasses.rows.flatMap((session) => {
       const rule = session.recurrenceRule as RecurrenceRule | undefined;
       if (!rule) return [{ ...session, occurrenceId: String(session.id), isRecurring: false }];
       const excludedDates = Array.isArray(session.excludedDates)
@@ -1024,11 +1027,6 @@ function Batches() {
     const existingRecord = scheduledClasses.rows.find(
       (scheduledClass) => scheduledClass.id === value.id,
     );
-    const existingRule = existingRecord?.recurrenceRule as RecurrenceRule | undefined;
-    if (existingRule && !scope) {
-      setPendingRecurringSave({ value, status });
-      return false;
-    }
     const record: Row = {
       ...value,
       facultyName: String(value.facultyName ?? departmentFaculty),
@@ -1039,6 +1037,11 @@ function Batches() {
     delete record.totalDuration;
     delete record.occurrenceId;
     delete record.isRecurring;
+    const existingRule = existingRecord?.recurrenceRule as RecurrenceRule | undefined;
+    if (existingRule && !scope) {
+      setPendingRecurringSave({ value, status });
+      return false;
+    }
     const savedPlan = value.schedulePlan as SchedulePlan | undefined;
     if (savedPlan) {
       const totalSessions = Number(value.totalSessions);
@@ -1256,7 +1259,7 @@ function Batches() {
         scheduledClasses.update(existingRecord.id, {
           excludedDates: [...new Set([...excludedDates, instanceDate])],
         });
-        const singleRecord = {
+        const singleRecord: Row = {
           ...record,
           id: scheduledClasses.nextId("CLS"),
           date: instanceDate,
@@ -1285,7 +1288,7 @@ function Batches() {
             : []
           ).filter((date) => String(date) < instanceDate),
         });
-        const followingRecord = {
+        const followingRecord: Row = {
           ...record,
           id: scheduledClasses.nextId("CLS"),
           date: instanceDate,
@@ -1331,12 +1334,19 @@ function Batches() {
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-[28px] font-bold tracking-tight text-foreground">
-          Batch &amp; Timing Management
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Course batches, schedules, rooms and capacity.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-[28px] font-bold tracking-tight text-foreground">
+              Batch &amp; Timing Management
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Course batches, schedules, rooms and capacity.
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <Link to="/faculty-leave-requests">Leave Requests</Link>
+          </Button>
+        </div>
       </div>
       <UrgentClassesPredictionCard className="es-ai-card-wide" />
       <Panel className="overflow-hidden">
